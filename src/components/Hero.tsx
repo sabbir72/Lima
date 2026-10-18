@@ -126,33 +126,37 @@ export default function Hero({ onOpenResumeBuilder, onOpenCoverLetter }: HeroPro
             </div>
 
             {/* Contact Pills */}
-            <div className="flex flex-wrap items-center gap-3 text-xs font-mono">
-              <button
-                onClick={handleCopyEmail}
-                className="flex items-center space-x-2 px-4 py-2.5 rounded-full bg-white/[0.04] border border-white/10 hover:border-[var(--color-accent)] text-[#D1D5DB] hover:text-white transition-all cursor-pointer"
-                title="Click to copy email"
-              >
-                <Mail className="w-3.5 h-3.5 text-[var(--color-accent)]" />
-                <span>{profile.email}</span>
-                {copiedEmail ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-[#9CA3AF]" />}
-              </button>
+            <div className="max-w-3xl w-full">
+              <div className="flex flex-wrap items-center gap-3 text-xs font-mono">
+                <button
+                  onClick={handleCopyEmail}
+                  className="group flex min-w-[220px] items-center justify-between gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2.5 text-left text-[#D1D5DB] transition-all hover:border-[var(--color-accent)] hover:text-white cursor-pointer"
+                  title="Click to copy email"
+                >
+                  <span className="flex items-center gap-2">
+                    <Mail className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                    <span className="truncate">{profile.email}</span>
+                  </span>
+                  {copiedEmail ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-[#9CA3AF] group-hover:text-white" />}
+                </button>
 
-              <a
-                href={`tel:${profile.phone}`}
-                className="flex items-center space-x-2 px-4 py-2.5 rounded-full bg-white/[0.04] border border-white/10 hover:border-[var(--color-accent)] text-[#D1D5DB] hover:text-white transition-all"
-              >
-                <Phone className="w-3.5 h-3.5 text-[var(--color-accent)]" />
-                <span>{profile.phone}</span>
-              </a>
+                <a
+                  href={`tel:${profile.phone}`}
+                  className="flex min-w-[180px] items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2.5 text-[#D1D5DB] transition-all hover:border-[var(--color-accent)] hover:text-white"
+                >
+                  <Phone className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                  <span>{profile.phone}</span>
+                </a>
 
-              <div className="flex items-center space-x-2 px-4 py-2.5 rounded-full bg-white/[0.04] border border-white/10 hover:border-[var(--color-accent)] text-[#D1D5DB] transition-all">
-                <MapPin className="w-3.5 h-3.5 text-[var(--color-accent)]" />
-                <span>{profile.location}</span>
+                <div className="flex min-w-[210px] items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2.5 text-[#D1D5DB] transition-all">
+                  <MapPin className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                  <span className="truncate">{profile.location}</span>
+                </div>
               </div>
             </div>
 
             {/* Action Buttons: Hire Me & View Projects */}
-            <div className="flex flex-wrap items-center gap-3 pt-3">
+            <div className="flex flex-wrap items-center gap-3 pt-2">
               {/* Primary: Hire Me */}
               <a
                 href="#contact"

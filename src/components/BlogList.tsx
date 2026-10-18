@@ -59,7 +59,7 @@ export default function BlogList({ onSelectPost }: BlogListProps) {
 
   // Set page document title
   useEffect(() => {
-    document.title = 'Blog & SQA Insights | Sabbir Ahamed - SQA Engineer';
+    document.title = 'Teaching & Media Journal | Tansom Akther Lima';
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   }, []);
 
@@ -117,7 +117,7 @@ export default function BlogList({ onSelectPost }: BlogListProps) {
   const totalPublishedCount = publishedPosts.length;
 
   return (
-    <div className="pt-24 pb-20 min-h-screen bg-[#0B0D12] text-[#F3F4F6] relative overflow-hidden">
+    <div className="pt-24 pb-20 min-h-screen bg-[var(--color-dark-card,#141E2A)] text-[#F3F4F6] relative overflow-hidden">
       {/* Background Decorative Gradient Orbs */}
       <div className="absolute top-20 left-1/4 w-96 h-96 bg-[var(--color-accent)]/10 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute top-96 right-10 w-80 h-80 bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
@@ -129,7 +129,7 @@ export default function BlogList({ onSelectPost }: BlogListProps) {
           <div className="space-y-3 max-w-2xl">
             <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/30 text-[var(--color-accent)] text-xs font-mono font-bold uppercase tracking-wider shadow-sm">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>SQA Engineering Insights & Knowledge Base</span>
+              <span>Teaching & Media Journal</span>
             </div>
 
             <h1 className="font-display font-black text-3xl sm:text-5xl text-white tracking-tight leading-tight">
@@ -137,7 +137,7 @@ export default function BlogList({ onSelectPost }: BlogListProps) {
             </h1>
 
             <p className="text-[#9CA3AF] text-xs sm:text-sm font-light leading-relaxed">
-              Technical articles on Software Testing, Playwright automation, API validation, ERPNext quality assurance, AI testing, and QA engineering best practices.
+              Reflections on classroom practice, student motivation, lesson planning, digital teaching support, and creative media work in education.
             </p>
           </div>
 

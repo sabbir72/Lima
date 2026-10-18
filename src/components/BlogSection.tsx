@@ -64,13 +64,13 @@ export default function BlogSection({ onSelectPost, onViewAllBlog }: BlogSection
           <div className="space-y-3 max-w-2xl">
             <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/30 text-[var(--color-accent)] text-xs font-mono font-bold uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Technical Publications & QA Insights</span>
+              <span>Teaching & Media Highlights</span>
             </div>
             <h2 className="font-display font-black text-3xl sm:text-4xl text-white tracking-tight">
-              Featured <span className="text-[var(--color-accent)]">Blog & Articles</span>
+              Featured <span className="text-[var(--color-accent)]">Blog & Reflections</span>
             </h2>
             <p className="text-[#9CA3AF] text-sm font-light leading-relaxed">
-              In-depth engineering articles on Playwright automation, API testing, ERPNext quality assurance, and CI/CD testing frameworks written by Sabbir Ahamed.
+              Classroom insights, educational practices, student growth stories, media support, and creative learning experiences from Tansom Akther Lima.
             </p>
           </div>
 
@@ -192,10 +192,10 @@ export default function BlogSection({ onSelectPost, onViewAllBlog }: BlogSection
                 <div className="space-y-1">
                   <span className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
                     <BookOpen className="w-4 h-4 text-[var(--color-accent)]" />
-                    Want to explore more articles?
+                    Want to explore more reflections?
                   </span>
                   <p className="text-xs text-[#9CA3AF] font-light">
-                    Browse topics across Manual Testing, Automation, CI/CD, and ERPNext QA.
+                    Browse ideas across English pedagogy, classroom leadership, educational media, and student growth.
                   </p>
                 </div>
                 <div className="w-9 h-9 rounded-full bg-[var(--color-accent)] text-white flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-lg shadow-[var(--color-accent)]/20">

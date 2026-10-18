@@ -11,8 +11,8 @@
  * -----------------------------------------
  */
 
-import { Project, Experience, Skill, TestLog } from '../types';
-import { PROJECTS as DEFAULT_PROJECTS, WORK_EXPERIENCE as DEFAULT_EXPERIENCE, SKILL_CATEGORIES as DEFAULT_SKILLS, PERSONAL_INFO } from '../data';
+import { Project, Experience, Skill, TestLog, Reference } from '../types';
+import { PROJECTS as DEFAULT_PROJECTS, WORK_EXPERIENCE as DEFAULT_EXPERIENCE, SKILL_CATEGORIES as DEFAULT_SKILLS, PERSONAL_INFO, PROFESSIONAL_REFERENCES as DEFAULT_REFERENCES } from '../data';
 import { getAdminToken } from './adminAuth';
 
 const STORAGE_KEY_PORTFOLIO = 'tansom_edu_portfolio_data_v3';
@@ -58,6 +58,7 @@ export interface PortfolioData {
   projects: Project[];
   experiences: Experience[];
   skills: Skill[];
+  references: Reference[];
   profile?: ProfileData;
   lastModified?: string;
 }
@@ -97,6 +98,9 @@ export function getStoredPortfolioData(): PortfolioData {
             skills: Array.isArray(parsed.skills) && parsed.skills.length > 0 
               ? parsed.skills 
               : [...DEFAULT_SKILLS],
+            references: Array.isArray(parsed.references) && parsed.references.length > 0
+              ? parsed.references
+              : [...DEFAULT_REFERENCES].map((ref, index) => ({ ...ref, id: ref.id || `ref-${index + 1}` })),
             profile: parsed.profile 
               ? { ...DEFAULT_PROFILE, ...parsed.profile } 
               : { ...DEFAULT_PROFILE },
@@ -124,6 +128,7 @@ export function getStoredPortfolioData(): PortfolioData {
     projects: [...DEFAULT_PROJECTS],
     experiences: [...DEFAULT_EXPERIENCE],
     skills: [...DEFAULT_SKILLS],
+    references: [...DEFAULT_REFERENCES].map((ref, index) => ({ ...ref, id: ref.id || `ref-${index + 1}` })),
     profile: { ...DEFAULT_PROFILE },
     lastModified: new Date().toISOString(),
   };
@@ -337,6 +342,66 @@ export function getStoredSkills(): Skill[] {
   return getStoredPortfolioData().skills;
 }
 
+export function getStoredReferences(): Reference[] {
+  return getStoredPortfolioData().references || [];
+}
+
+export function saveStoredReferences(references: Reference[]): void {
+  const current = getStoredPortfolioData();
+  savePortfolioData({ ...current, references });
+}
+
+export function addStoredReference(newReference: Omit<Reference, 'id'> & { id?: string }): Reference {
+  const current = getStoredPortfolioData();
+  const id = newReference.id && newReference.id.trim()
+    ? newReference.id.trim()
+    : `ref-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+
+  const created: Reference = {
+    ...newReference,
+    id,
+    quote: newReference.quote || '',
+  };
+
+  const updatedReferences = [created, ...current.references || []];
+  savePortfolioData({ ...current, references: updatedReferences });
+  return created;
+}
+
+export function updateStoredReference(id: string, updatedFields: Partial<Reference>): boolean {
+  const current = getStoredPortfolioData();
+  const refs = current.references || [];
+  const index = refs.findIndex(ref => ref.id === id);
+  if (index === -1) return false;
+
+  const updatedReferences = [...refs];
+  updatedReferences[index] = {
+    ...updatedReferences[index],
+    ...updatedFields,
+  };
+
+  savePortfolioData({ ...current, references: updatedReferences });
+  return true;
+}
+
+export function deleteStoredReference(id: string): boolean {
+  const current = getStoredPortfolioData();
+  const refs = current.references || [];
+  const filtered = refs.filter(ref => ref.id !== id);
+  if (filtered.length === refs.length) return false;
+
+  savePortfolioData({ ...current, references: filtered });
+  return true;
+}
+
+export function reorderStoredReferences(startIndex: number, endIndex: number): void {
+  const current = getStoredPortfolioData();
+  const refs = [...(current.references || [])];
+  const [removed] = refs.splice(startIndex, 1);
+  refs.splice(endIndex, 0, removed);
+  savePortfolioData({ ...current, references: refs });
+}
+
 export function saveStoredSkills(skills: Skill[]): void {
   const current = getStoredPortfolioData();
   savePortfolioData({ ...current, skills });
@@ -422,6 +487,7 @@ export function resetPortfolioToDefault(): void {
     projects: [...DEFAULT_PROJECTS],
     experiences: [...DEFAULT_EXPERIENCE],
     skills: [...DEFAULT_SKILLS],
+    references: [...DEFAULT_REFERENCES].map((ref, index) => ({ ...ref, id: ref.id || `ref-${index + 1}` })),
     profile: { ...DEFAULT_PROFILE },
     lastModified: new Date().toISOString(),
   };
@@ -456,6 +522,9 @@ export function importPortfolioDataJson(jsonString: string): boolean {
       projects: Array.isArray(parsed.projects) ? parsed.projects : current.projects,
       experiences: Array.isArray(parsed.experiences) ? parsed.experiences : current.experiences,
       skills: Array.isArray(parsed.skills) ? parsed.skills : current.skills,
+      references: Array.isArray(parsed.references)
+        ? parsed.references.map((ref, index) => ({ ...ref, id: ref?.id || `ref-${index + 1}` }))
+        : current.references || [...DEFAULT_REFERENCES].map((ref, index) => ({ ...ref, id: ref.id || `ref-${index + 1}` })),
       profile: parsed.profile ? { ...DEFAULT_PROFILE, ...parsed.profile } : current.profile || { ...DEFAULT_PROFILE },
       lastModified: new Date().toISOString(),
     };

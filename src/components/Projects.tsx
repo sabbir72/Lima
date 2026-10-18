@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ExternalLink, Github, Terminal, CheckCircle2, Filter, Layers, Code, Cpu, Activity, FileCheck, Plus, Settings } from 'lucide-react';
+import { ExternalLink, Github, CheckCircle2, Filter, Layers, FileCheck, Plus, Settings, BookOpen, Camera, Presentation } from 'lucide-react';
 import { Project } from '../types';
 import { getStoredProjects, PORTFOLIO_UPDATED_EVENT } from '../utils/portfolioStore';
 import { isAdminAuthenticated } from '../utils/adminAuth';
@@ -24,7 +24,7 @@ export default function Projects() {
     };
   }, []);
 
-  const categories = ['All', 'Automation', 'API', 'Performance', 'Manual'];
+  const categories = ['All', 'Teaching', 'Media', 'Presentation', 'Curriculum'];
 
   const filteredProjects = selectedType === 'All'
     ? projects
@@ -32,13 +32,13 @@ export default function Projects() {
 
   const getTypeBadgeStyle = (type: string) => {
     switch (type) {
-      case 'Automation':
+      case 'Teaching':
         return 'bg-[var(--color-accent)]/10 text-[var(--color-accent)] border-[var(--color-accent)]/30';
-      case 'API':
+      case 'Media':
         return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
-      case 'Performance':
+      case 'Presentation':
         return 'bg-amber-500/10 text-amber-400 border-amber-500/30';
-      case 'Manual':
+      case 'Curriculum':
         return 'bg-sky-500/10 text-sky-400 border-sky-500/30';
       default:
         return 'bg-white/10 text-[#D1D5DB] border-white/10';
@@ -47,13 +47,13 @@ export default function Projects() {
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'Automation':
-        return <Code className="w-3.5 h-3.5 text-[var(--color-accent)]" />;
-      case 'API':
-        return <Terminal className="w-3.5 h-3.5 text-emerald-400" />;
-      case 'Performance':
-        return <Cpu className="w-3.5 h-3.5 text-amber-400" />;
-      case 'Manual':
+      case 'Teaching':
+        return <BookOpen className="w-3.5 h-3.5 text-[var(--color-accent)]" />;
+      case 'Media':
+        return <Camera className="w-3.5 h-3.5 text-emerald-400" />;
+      case 'Presentation':
+        return <Presentation className="w-3.5 h-3.5 text-amber-400" />;
+      case 'Curriculum':
         return <FileCheck className="w-3.5 h-3.5 text-sky-400" />;
       default:
         return <Layers className="w-3.5 h-3.5 text-[#D1D5DB]" />;
@@ -61,7 +61,7 @@ export default function Projects() {
   };
 
   return (
-    <section id="projects" className="py-24 bg-[#0B0D12] text-[#F3F4F6] border-t border-white/10 px-4 sm:px-6 relative">
+    <section id="projects" className="py-24 bg-[var(--color-dark-card,#141E2A)] text-[#F3F4F6] border-t border-white/10 px-4 sm:px-6 relative">
       <div className="max-w-7xl mx-auto space-y-12 relative z-10">
         
         {/* Section Header */}
@@ -248,34 +248,6 @@ export default function Projects() {
                     <span key={t} className="px-3 py-1 rounded-full text-xs font-mono bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/30 font-semibold">
                       {t}
                     </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Assertions / Test Cases */}
-              <div className="space-y-3 p-4 bg-white/[0.03] rounded-2xl border border-white/10">
-                <h5 className="text-xs font-mono font-bold text-[var(--color-accent)] uppercase tracking-wider flex items-center justify-between">
-                  <span>Automated Assertion Log</span>
-                  <span className="text-[10px] text-emerald-400">
-                    {activeModalProject.assertions.filter(a => a.status === 'PASS').length} / {activeModalProject.assertions.length} Passed
-                  </span>
-                </h5>
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {activeModalProject.assertions.map((ast, i) => (
-                    <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-white/[0.02] border border-white/5 text-xs font-mono">
-                      <div className="flex items-center space-x-2 truncate">
-                        <CheckCircle2 className={`w-3.5 h-3.5 ${ast.status === 'PASS' ? 'text-emerald-400' : 'text-rose-400'}`} />
-                        <span className="text-[#D1D5DB] truncate">{ast.name}</span>
-                      </div>
-                      <div className="flex items-center space-x-2 shrink-0">
-                        {ast.duration && <span className="text-[10px] text-[#9CA3AF]">{ast.duration}</span>}
-                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                          ast.status === 'PASS' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
-                        }`}>
-                          {ast.status}
-                        </span>
-                      </div>
-                    </div>
                   ))}
                 </div>
               </div>

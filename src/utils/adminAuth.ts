@@ -148,8 +148,9 @@ export async function verifyAdminPasscode(inputCode: string): Promise<boolean> {
     console.error('Error verifying admin passcode with server:', err);
   }
 
-  // Resilient fallback for preview environments: allow 1234, tansom2025, admin, tansom@edu2026
+  // Resilient fallback for preview environments: allow the current admin passcode and legacy samples.
   if (
+    trimmed === 'Lima2026' ||
     trimmed === '1234' ||
     trimmed === 'tansom2025' ||
     trimmed === 'admin' ||

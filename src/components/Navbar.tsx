@@ -76,7 +76,7 @@ export default function Navbar({
 
       <header className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
         scrolled 
-          ? 'bg-[var(--color-dark-bg,#080B11)]/90 backdrop-blur-md shadow-2xl border-b border-white/10 py-3' 
+          ? 'bg-[var(--color-dark-bg,#243544)]/90 backdrop-blur-md shadow-2xl border-b border-white/10 py-3' 
           : 'bg-transparent border-b border-white/[0.06] py-4'
       }`}>
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between gap-4" aria-label="Main navigation">
@@ -130,16 +130,6 @@ export default function Navbar({
             >
               <Mail className="w-4 h-4 text-[var(--color-accent)]" />
             </a>
-
-            {/* Resume / CV Action Button */}
-            {onOpenResumeBuilder && (
-              <button
-                onClick={onOpenResumeBuilder}
-                className="hidden md:inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-full text-xs font-mono font-semibold bg-white/[0.05] hover:bg-white/10 text-white border border-white/15 hover:border-[var(--color-accent)] transition-all cursor-pointer"
-              >
-                <span>CV & ATS</span>
-              </button>
-            )}
 
             {/* Hire Me Primary Button */}
             <a

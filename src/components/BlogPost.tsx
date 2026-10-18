@@ -126,7 +126,7 @@ export default function BlogPost({ slug, onBackToBlog, onSelectPost, onOpenConta
   // Set document title
   useEffect(() => {
     if (post) {
-      document.title = `${post.title} | Sabbir Ahamed Blog`;
+      document.title = `${post.title} | Tansom Akther Lima Blog`;
     }
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   }, [post]);
@@ -454,7 +454,7 @@ export default function BlogPost({ slug, onBackToBlog, onSelectPost, onOpenConta
           <div className="space-y-2 flex-1">
             <div className="flex items-center justify-center sm:justify-start space-x-2">
               <h4 className="font-display font-bold text-lg text-white">{post.author.name}</h4>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--color-accent)]/20 text-[var(--color-accent)] font-bold">SQA Author</span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--color-accent)]/20 text-[var(--color-accent)] font-bold">Educator Author</span>
             </div>
             <p className="text-xs text-[#9CA3AF] leading-relaxed font-light">{post.author.bio}</p>
           </div>

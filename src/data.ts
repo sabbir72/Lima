@@ -155,7 +155,7 @@ export const PROJECTS: Project[] = [
   {
     id: 'proj-interactive-classroom',
     title: 'Student-Centered English Pedagogy & Presentation Workshop',
-    type: 'Manual',
+    type: 'Teaching',
     description:
       'Structured interactive presentation methodology implemented across Grades 1–6 English Version classes, fostering noticeable improvements in student vocabulary retention and public speaking confidence.',
     metrics: [
@@ -181,7 +181,7 @@ export const PROJECTS: Project[] = [
   {
     id: 'proj-school-media',
     title: 'School Media Documentation & Digital Storytelling',
-    type: 'Automation',
+    type: 'Media',
     description:
       'Spearheaded media support at New Blown An Int’l Standard School, capturing professional photography and video coverage for assemblies, academic fairs, and campus celebrations, followed by Canva social curation.',
     metrics: [
@@ -207,7 +207,7 @@ export const PROJECTS: Project[] = [
   {
     id: 'proj-global-warming',
     title: 'Awareness Presentation on Global Warming & Climate Action',
-    type: 'API',
+    type: 'Presentation',
     description:
       'Award-recognized presentation analyzing environmental challenges, plastic reduction, greenhouse emissions, and practical school-level conservation habits.',
     metrics: [
@@ -233,7 +233,7 @@ export const PROJECTS: Project[] = [
   {
     id: 'proj-grammar-workbook',
     title: 'Interactive Grammar & Phonics Leveled Diagnostic Series',
-    type: 'Performance',
+    type: 'Curriculum',
     description:
       'A structured series of worksheets and illustrative grammar drills designed in MS Word and Canva to reinforce parts of speech, vocabulary, and phonetics for primary students.',
     metrics: [
@@ -323,17 +323,21 @@ export const BUG_REPORTS: BugReport[] = [
  */
 export const PROFESSIONAL_REFERENCES: Reference[] = [
   {
+    id: 'ref-academic-coordinator',
     name: 'Academic Coordinator',
     role: 'English Version In-Charge',
     company: "New Blown An Int'l Standard School, Dattapara Branch",
     email: 'academics.newblown@gmail.com',
     phone: '+880 1617927883 (Contact via School Office)',
+    quote: 'Tansom demonstrates exceptional pedagogical dedication, strong classroom leadership, and brings creative presentation and digital media techniques that engage young learners consistently.',
   },
   {
+    id: 'ref-senior-faculty',
     name: 'Senior Faculty Member',
     role: 'Department of English',
     company: 'Uttara University, Dhaka',
     email: 'english.dept@uttarauniversity.edu.bd',
     phone: '+880 2-8919651',
+    quote: 'Tansom is a dependable and intellectually curious learner who shows strong communication, academic discipline, and collaborative spirit in classroom and project work.',
   },
 ];

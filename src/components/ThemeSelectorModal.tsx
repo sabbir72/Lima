@@ -83,7 +83,7 @@ export default function ThemeSelectorModal({ isOpen, onClose }: ThemeSelectorMod
                 </span>
               </div>
               <p className="text-xs text-[#9CA3AF] mt-1 font-sans">
-                Select your preferred executive color look for Sabbir Ahamed's SQA engineering showcase.
+                Select your preferred executive color look for Tansom Akther Lima's educational and media portfolio.
               </p>
             </div>
           </div>

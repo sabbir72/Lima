@@ -56,7 +56,7 @@ export interface TestLog {
 export interface Project {
   id: string;
   title: string;
-  type: 'Manual' | 'Automation' | 'API' | 'Performance';
+  type: 'Teaching' | 'Media' | 'Presentation' | 'Curriculum';
   description: string;
   metrics?: {
     label: string;
@@ -91,9 +91,11 @@ export interface BugReport {
  * Interface representing professional reference contacts
  */
 export interface Reference {
+  id?: string;
   name: string;
   role: string;
   company: string;
   email: string;
   phone: string;
+  quote?: string;
 }

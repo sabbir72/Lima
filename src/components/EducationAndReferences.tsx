@@ -1,10 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GraduationCap, Award, Mail, Phone, Building2, Copy, Check, Users, Sparkles } from 'lucide-react';
 import { EDUCATION_HISTORY, PROFESSIONAL_REFERENCES } from '../data';
+import { getStoredReferences, PORTFOLIO_UPDATED_EVENT } from '../utils/portfolioStore';
+import { Reference } from '../types';
 
 export default function EducationAndReferences() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const ref = PROFESSIONAL_REFERENCES[0];
+  const [references, setReferences] = useState<Reference[]>(() => getStoredReferences());
+
+  useEffect(() => {
+    const syncReferences = () => setReferences(getStoredReferences());
+    syncReferences();
+    window.addEventListener(PORTFOLIO_UPDATED_EVENT, syncReferences);
+    return () => window.removeEventListener(PORTFOLIO_UPDATED_EVENT, syncReferences);
+  }, []);
+
+  const ref = references[0] || PROFESSIONAL_REFERENCES[0];
 
   const handleCopy = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
@@ -36,7 +47,7 @@ export default function EducationAndReferences() {
   return (
     <section
       id="education"
-      className="py-24 bg-[var(--color-dark-bg,#080B11)] text-[#F3F4F6] px-4 sm:px-6 border-t border-white/10 relative"
+      className="py-24 bg-[var(--color-dark-bg,#243544)] text-[#F3F4F6] px-4 sm:px-6 border-t border-white/10 relative"
     >
       <div className="max-w-7xl mx-auto relative z-10 space-y-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
@@ -55,7 +66,7 @@ export default function EducationAndReferences() {
               {EDUCATION_HISTORY.map((edu) => (
                 <div
                   key={edu.id}
-                  className="bg-[#12151C] p-7 rounded-2xl border border-white/10 relative group hover:border-[var(--color-accent)]/50 transition-all shadow-lg"
+                  className="bg-[var(--color-dark-card,#2E4355)] p-7 rounded-2xl border border-white/10 relative group hover:border-[var(--color-accent)]/50 transition-all shadow-lg"
                 >
                   <div className="absolute top-7 right-7 text-[#9CA3AF] group-hover:text-[var(--color-accent)] transition-colors">
                     <GraduationCap className="w-5 h-5" />
@@ -92,7 +103,7 @@ export default function EducationAndReferences() {
               </h2>
             </div>
 
-            <div className="bg-[#12151C] p-7 sm:p-8 rounded-2xl border border-white/10 relative overflow-hidden group hover:border-[var(--color-accent)]/50 transition-all shadow-lg">
+            <div className="bg-[var(--color-dark-card,#2E4355)] p-7 sm:p-8 rounded-2xl border border-white/10 relative overflow-hidden group hover:border-[var(--color-accent)]/50 transition-all shadow-lg">
               <Building2 className="absolute right-4 bottom-4 w-36 h-36 text-white/5 pointer-events-none" />
               <div className="space-y-6 relative z-10">
                 <div className="space-y-1">
@@ -104,7 +115,7 @@ export default function EducationAndReferences() {
                 </div>
 
                 <p className="text-[#D1D5DB] text-xs sm:text-sm leading-relaxed italic font-light">
-                  "Tansom demonstrates exceptional pedagogical dedication, strong classroom leadership, and brings creative presentation and digital media techniques that engage young learners consistently."
+                  {ref.quote || 'Tansom demonstrates exceptional pedagogical dedication, strong classroom leadership, and brings creative presentation and digital media techniques that engage young learners consistently.'}
                 </p>
 
                 {/* Contact details with quick copy */}
@@ -172,7 +183,7 @@ export default function EducationAndReferences() {
             {achievements.map((ach, idx) => (
               <div
                 key={idx}
-                className="bg-[#12151C] p-6 rounded-2xl border border-white/10 hover:border-[var(--color-accent)]/40 transition-all space-y-3 shadow-lg"
+                className="bg-[var(--color-dark-card,#2E4355)] p-6 rounded-2xl border border-white/10 hover:border-[var(--color-accent)]/40 transition-all space-y-3 shadow-lg"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-mono font-bold text-[var(--color-accent)]">
@@ -190,18 +201,6 @@ export default function EducationAndReferences() {
             ))}
           </div>
 
-          {/* Languages */}
-          <div className="mt-6 p-4 rounded-xl bg-white/[0.03] border border-white/10 flex flex-wrap items-center justify-between gap-4 text-xs font-mono">
-            <span className="text-white font-bold uppercase tracking-wider">Languages:</span>
-            <div className="flex items-center gap-6 text-[#D1D5DB]">
-              <div>
-                <strong className="text-white">Bengali:</strong> Native
-              </div>
-              <div>
-                <strong className="text-white">English:</strong> Fluent & Good Working Knowledge
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </section>

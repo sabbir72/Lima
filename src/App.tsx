@@ -3,8 +3,6 @@ import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import SkillsGrid from './components/SkillsGrid';
 import Projects from './components/Projects';
-import InteractiveTestRunner from './components/InteractiveTestRunner';
-import BugTracker from './components/BugTracker';
 import BlogSection from './components/BlogSection';
 import ExperienceTimeline from './components/ExperienceTimeline';
 import CareerVision from './components/CareerVision';
@@ -116,7 +114,7 @@ export default function App() {
   const currentPath = window.location.pathname;
 
   return (
-    <div className="min-h-screen bg-[var(--color-dark-bg,#080B11)] text-[#F3F4F6] flex flex-col font-sans selection:bg-[var(--color-accent,#00D2FF)] selection:text-black transition-colors duration-300">
+    <div className="min-h-screen bg-[var(--color-dark-bg,#243544)] text-[var(--color-text-primary,#edf3f8)] flex flex-col font-sans selection:bg-[var(--color-accent,#00D2FF)] selection:text-black transition-colors duration-300" style={{ backgroundImage: 'radial-gradient(circle at top left, var(--color-accent-glow), transparent 30%), radial-gradient(circle at bottom right, rgba(76, 201, 240, 0.08), transparent 32%)' }}>
       {/* Navigation Header */}
       <Navbar
         dark={dark}
@@ -158,8 +156,6 @@ export default function App() {
             />
             <SkillsGrid />
             <Projects />
-            <InteractiveTestRunner />
-            <BugTracker />
             <BlogSection
               onSelectPost={(slug) => navigateTo(`/blog/${slug}`)}
               onViewAllBlog={() => navigateTo('/blog')}
@@ -216,7 +212,7 @@ export default function App() {
               ? 'Cover Letter Generator Admin Access'
               : 'Admin Portal Access'
           }
-          description="Enter your Admin Passcode (Default: 1234 or tansom2025) to access administrative settings and content management."
+          description="Enter the admin passcode to access administrative settings and content management."
         />
       )}
 

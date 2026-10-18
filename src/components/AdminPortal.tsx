@@ -23,12 +23,13 @@ import {
 } from 'lucide-react';
 import ThemeSelectorModal from './ThemeSelectorModal';
 import { COLOR_THEMES, getSavedThemeId, setAndApplyTheme } from '../utils/themeStore';
-import { Project, Experience, Skill, TestLog } from '../types';
+import { Project, Experience, Skill, TestLog, Reference } from '../types';
 import { 
   getStoredProjects, addStoredProject, updateStoredProject, deleteStoredProject, reorderStoredProjects,
   getStoredExperiences, addStoredExperience, updateStoredExperience, deleteStoredExperience, reorderStoredExperiences,
   getStoredSkills, saveStoredSkills, addStoredSkillCategory, updateStoredSkillCategory, deleteStoredSkillCategory,
   addSkillItemToCategory, removeSkillItemFromCategory,
+  getStoredReferences, addStoredReference, updateStoredReference, deleteStoredReference, reorderStoredReferences,
   getStoredProfile, updateStoredProfile, ProfileData,
   resetPortfolioToDefault, exportPortfolioDataJson, importPortfolioDataJson,
   PORTFOLIO_UPDATED_EVENT
@@ -66,7 +67,7 @@ import {
 } from './ResumeBuilderModal';
 import { CoverLetterTone, CoverLetterTemplate } from './CoverLetterGeneratorModal';
 
-export type AdminTab = 'projects' | 'experience' | 'skills' | 'blogs' | 'resume' | 'cover-letter' | 'profile' | 'security';
+export type AdminTab = 'projects' | 'experience' | 'skills' | 'references' | 'blogs' | 'resume' | 'cover-letter' | 'profile' | 'security';
 
 interface AdminPortalProps {
   onBack: () => void;
@@ -105,6 +106,7 @@ export default function AdminPortal({
   const [projects, setProjects] = useState<Project[]>(() => getStoredProjects());
   const [experiences, setExperiences] = useState<Experience[]>(() => getStoredExperiences());
   const [skills, setSkills] = useState<Skill[]>(() => getStoredSkills());
+  const [references, setReferences] = useState<Reference[]>(() => getStoredReferences());
   const [blogs, setBlogs] = useState<BlogPost[]>(() => getStoredBlogPosts());
   const [profile, setProfile] = useState<ProfileData>(() => getStoredProfile());
 
@@ -147,12 +149,15 @@ export default function AdminPortal({
   const [isBlogModalOpen, setIsBlogModalOpen] = useState(false);
   const [editingBlog, setEditingBlog] = useState<BlogPost | null>(null);
 
+  const [isReferenceModalOpen, setIsReferenceModalOpen] = useState(false);
+  const [editingReference, setEditingReference] = useState<Reference | null>(null);
+
   // Quick skill input per category
   const [quickSkillInput, setQuickSkillInput] = useState<{ [categoryIndex: number]: string }>({});
 
   // Confirmation Modals
   const [confirmDelete, setConfirmDelete] = useState<{
-    type: 'project' | 'experience' | 'skillCategory' | 'blog' | 'reset';
+    type: 'project' | 'experience' | 'skillCategory' | 'reference' | 'blog' | 'reset';
     id?: string;
     index?: number;
     title: string;
@@ -173,6 +178,7 @@ export default function AdminPortal({
       setProjects(getStoredProjects());
       setExperiences(getStoredExperiences());
       setSkills(getStoredSkills());
+      setReferences(getStoredReferences());
       setProfile(getStoredProfile());
     };
 
@@ -397,6 +403,38 @@ export default function AdminPortal({
   };
 
   // --------------------------------------------------------------------------
+  // REFERENCE CRUD ACTIONS
+  // --------------------------------------------------------------------------
+  const handleOpenAddReference = () => {
+    setEditingReference(null);
+    setIsReferenceModalOpen(true);
+  };
+
+  const handleOpenEditReference = (ref: Reference) => {
+    setEditingReference(ref);
+    setIsReferenceModalOpen(true);
+  };
+
+  const handleSaveReference = (refData: Omit<Reference, 'id'> & { id?: string }) => {
+    if (editingReference) {
+      updateStoredReference(editingReference.id || refData.id || '', refData);
+      showToast(`Reference for "${refData.name}" updated.`);
+    } else {
+      addStoredReference(refData);
+      showToast(`Reference for "${refData.name}" created.`);
+    }
+    setIsReferenceModalOpen(false);
+    setEditingReference(null);
+  };
+
+  const handleMoveReference = (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= references.length) return;
+    reorderStoredReferences(index, targetIndex);
+    showToast('Reference reordered.');
+  };
+
+  // --------------------------------------------------------------------------
   // SKILL CRUD ACTIONS
   // --------------------------------------------------------------------------
   const handleOpenAddCategory = () => {
@@ -612,6 +650,9 @@ ${profile.title || PERSONAL_INFO.title}`;
     } else if (confirmDelete.type === 'skillCategory' && confirmDelete.index !== undefined) {
       deleteStoredSkillCategory(confirmDelete.index);
       showToast(`Skill category "${confirmDelete.title}" deleted.`);
+    } else if (confirmDelete.type === 'reference' && confirmDelete.id) {
+      deleteStoredReference(confirmDelete.id);
+      showToast(`Reference "${confirmDelete.title}" deleted.`);
     } else if (confirmDelete.type === 'blog' && confirmDelete.id) {
       deleteBlogPost(confirmDelete.id);
       showToast(`Article "${confirmDelete.title}" deleted.`);
@@ -1087,6 +1128,18 @@ ${profile.title || PERSONAL_INFO.title}`;
           </button>
 
           <button
+            onClick={() => setActiveTab('references')}
+            className={`px-4 py-2.5 rounded-xl font-mono text-xs font-bold transition-all flex items-center space-x-2 shrink-0 cursor-pointer ${
+              activeTab === 'references'
+                ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/25'
+                : 'bg-white/5 text-[#D1D5DB] hover:bg-white/10 hover:text-white'
+            }`}
+          >
+            <Building2 className="w-4 h-4" />
+            <span>References ({references.length})</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('blogs')}
             className={`px-4 py-2.5 rounded-xl font-mono text-xs font-bold transition-all flex items-center space-x-2 shrink-0 cursor-pointer ${
               activeTab === 'blogs'
@@ -1435,7 +1488,97 @@ ${profile.title || PERSONAL_INFO.title}`;
         )}
 
         {/* ==================================================================== */}
-        {/* TAB 3: SKILLS MANAGEMENT (CRUD) */}
+        {/* TAB 3: REFERENCES MANAGEMENT (CRUD) */}
+        {/* ==================================================================== */}
+        {activeTab === 'references' && (
+          <div className="space-y-6 animate-fadeIn">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-display font-bold text-lg text-white">
+                  Professional References ({references.length})
+                </h3>
+                <p className="text-xs font-mono text-[#9CA3AF]">
+                  Manage endorsement contacts and their quick copy details.
+                </p>
+              </div>
+
+              <button
+                onClick={handleOpenAddReference}
+                className="shimmer inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-mono text-xs font-bold shadow-lg shadow-[var(--color-accent)]/20 transition-all hover:scale-105 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Reference</span>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {references.map((ref, idx) => (
+                <div key={ref.id || idx} className="bg-[#12151C] border border-white/10 rounded-2xl p-5 shadow-md space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-display font-bold text-base text-white">{ref.name}</span>
+                        <span className="text-xs font-mono text-[var(--color-accent)]">{ref.role}</span>
+                      </div>
+                      <p className="text-xs font-mono text-[#9CA3AF]">{ref.company}</p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 self-end sm:self-start">
+                      <div className="flex items-center bg-white/5 rounded-lg border border-white/10 p-0.5 mr-1">
+                        <button
+                          onClick={() => handleMoveReference(idx, 'up')}
+                          disabled={idx === 0}
+                          className="p-1.5 text-[#9CA3AF] hover:text-white disabled:opacity-30 cursor-pointer"
+                          title="Move Up"
+                        >
+                          <ArrowUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleMoveReference(idx, 'down')}
+                          disabled={idx === references.length - 1}
+                          className="p-1.5 text-[#9CA3AF] hover:text-white disabled:opacity-30 cursor-pointer"
+                          title="Move Down"
+                        >
+                          <ArrowDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <button
+                        onClick={() => handleOpenEditReference(ref)}
+                        className="p-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-colors cursor-pointer border border-blue-500/20"
+                        title="Edit Reference"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        onClick={() => setConfirmDelete({ type: 'reference', id: ref.id || '', title: `${ref.name} (${ref.role})` })}
+                        className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors cursor-pointer border border-red-500/20"
+                        title="Delete Reference"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-mono text-[#D1D5DB] bg-white/[0.02] border border-white/5 rounded-xl p-3">
+                    <div className="flex items-center gap-2"><Mail className="w-3.5 h-3.5 text-[var(--color-accent)]" />{ref.email || '—'}</div>
+                    <div className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-[var(--color-accent)]" />{ref.phone || '—'}</div>
+                  </div>
+
+                  {ref.quote && (
+                    <p className="text-xs text-[#D1D5DB] italic leading-relaxed border-l border-[var(--color-accent)]/40 pl-3">
+                      “{ref.quote}”
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ==================================================================== */}
+        {/* TAB 4: SKILLS MANAGEMENT (CRUD) */}
         {/* ==================================================================== */}
         {activeTab === 'skills' && (
           <div className="space-y-6 animate-fadeIn">
