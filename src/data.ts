@@ -17,7 +17,7 @@ import { Skill, Experience, Education, Project, Reference } from './types';
 export const PERSONAL_INFO = {
   name: 'Tansom Akther Lima',
   title: 'Assistant Teacher (E.V) & Media Support Specialist',
-  avatar: '/src/assets/images/avatar_tansom_lima_1792306174589.jpg',
+  avatar: '/images/lima.jpeg',
   email: 'limatansom89@gmail.com',
   phone: '+880 1617927883',
   location: 'Tongi-Gazipur, Dhaka, Bangladesh',

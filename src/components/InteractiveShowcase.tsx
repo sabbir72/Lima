@@ -191,9 +191,12 @@ export const InteractiveShowcase: React.FC<InteractiveShowcaseProps> = ({
               <div className="relative w-full max-w-md rounded-3xl border border-emerald-700/40 bg-gradient-to-b from-[#082217] via-[#05150f] to-[#030c08] p-4 shadow-2xl shadow-emerald-950/50">
                 <div className="relative overflow-hidden rounded-2xl aspect-square bg-[#05130e]">
                   <img
-                    src={personal.avatarUrl}
+                    src={personal.avatarUrl || '/images/lima.jpeg'}
                     alt={personal.fullName}
                     referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = '/images/lima.jpeg';
+                    }}
                     className="w-full h-full object-cover object-top transition-transform duration-500 hover:scale-103"
                   />
 

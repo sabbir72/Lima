@@ -38,7 +38,7 @@ export interface ProfileData {
 export const DEFAULT_PROFILE: ProfileData = {
   name: PERSONAL_INFO.name,
   title: PERSONAL_INFO.title,
-  avatar: PERSONAL_INFO.avatar || '/src/assets/images/avatar_tansom_lima_1792306174589.jpg',
+  avatar: PERSONAL_INFO.avatar || '/images/lima.jpeg',
   email: PERSONAL_INFO.email,
   phone: PERSONAL_INFO.phone,
   location: PERSONAL_INFO.location,
@@ -143,6 +143,9 @@ export function getStoredPortfolioData(): PortfolioData {
             ].join(' '))))
             : withReferenceIds([...DEFAULT_REFERENCES]);
           const profile = { ...DEFAULT_PROFILE, ...parsed.profile };
+          if (!profile.avatar || profile.avatar.includes('avatar_tansom_lima') || profile.avatar.includes('1792306174589') || profile.avatar.includes('sabbir_avatar')) {
+            profile.avatar = DEFAULT_PROFILE.avatar;
+          }
           (Object.keys(profile) as (keyof ProfileData)[]).forEach(field => {
             if (containsLegacyTestingContent(profile[field])) {
               profile[field] = DEFAULT_PROFILE[field];

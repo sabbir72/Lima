@@ -4,7 +4,7 @@ import { PERSONAL_INFO } from '../data';
 import { navigateTo } from '../utils/router';
 import { getStoredProfile, PORTFOLIO_UPDATED_EVENT } from '../utils/portfolioStore';
 
-const FALLBACK_AVATAR = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800';
+const FALLBACK_AVATAR = '/images/lima.jpeg';
 
 interface HeroProps {
   onOpenResumeBuilder?: () => void;
@@ -29,7 +29,7 @@ export default function Hero({ onOpenResumeBuilder, onOpenCoverLetter }: HeroPro
     setTimeout(() => setCopiedEmail(false), 2000);
   };
 
-  const primaryAvatar = profile.avatar || PERSONAL_INFO.avatar || '/src/assets/images/avatar_tansom_lima_1792306174589.jpg';
+  const primaryAvatar = profile.avatar || PERSONAL_INFO.avatar || '/images/lima.jpeg';
 
   const stats = [
     { value: 'Grades 1–6', label: 'E.V Instruction' },

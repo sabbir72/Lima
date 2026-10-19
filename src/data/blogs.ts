@@ -40,11 +40,11 @@ export const DEFAULT_BLOG_POSTS: BlogPost[] = [
     readingTime: '5 min read',
     tags: ['English Pedagogy', 'Classroom Presentation', 'Student Confidence', 'Spoken English'],
     featured: true,
-    coverImage: '/src/assets/images/showcase_interactive_classroom_1792306176262.jpg',
+    coverImage: '/images/showcase_interactive_classroom.jpg',
     author: {
       name: 'Tansom Akther Lima',
       role: 'Assistant Teacher (E.V) & Media Support Specialist',
-      avatar: '/src/assets/images/avatar_tansom_lima_1792306174589.jpg',
+      avatar: '/images/lima.jpeg',
       bio: 'BA (Hons) in English, Dean’s Award recipient, and Assistant Teacher (E.V) specializing in interactive classroom pedagogy and school digital media.',
     },
     content: `# Fostering Student Confidence Through Interactive English Presentations
@@ -95,11 +95,11 @@ Teaching English is not merely about rules; it is about providing young minds wi
     readingTime: '6 min read',
     tags: ['School Media', 'Digital Storytelling', 'Educational Photography', 'Canva Design'],
     featured: false,
-    coverImage: '/src/assets/images/showcase_school_media_1792306175676.jpg',
+    coverImage: '/images/showcase_school_media.jpg',
     author: {
       name: 'Tansom Akther Lima',
       role: 'Assistant Teacher (E.V) & Media Support Specialist',
-      avatar: '/src/assets/images/avatar_tansom_lima_1792306174589.jpg',
+      avatar: '/images/lima.jpeg',
       bio: 'BA (Hons) in English, Dean’s Award recipient, and Assistant Teacher (E.V) specializing in interactive classroom pedagogy and school digital media.',
     },
     content: `# School Media Documentation: Capturing Classroom Milestones with Creative Photography
@@ -149,11 +149,11 @@ Through disciplined documentation, we preserve precious milestones that students
     readingTime: '5 min read',
     tags: ['Lesson Planning', 'Differentiated Learning', 'Classroom Leadership', 'Curriculum'],
     featured: false,
-    coverImage: '/src/assets/images/showcase_interactive_classroom_1792306176262.jpg',
+    coverImage: '/images/showcase_interactive_classroom.jpg',
     author: {
       name: 'Tansom Akther Lima',
       role: 'Assistant Teacher (E.V) & Media Support Specialist',
-      avatar: '/src/assets/images/avatar_tansom_lima_1792306174589.jpg',
+      avatar: '/images/lima.jpeg',
       bio: 'BA (Hons) in English, Dean’s Award recipient, and Assistant Teacher (E.V) specializing in interactive classroom pedagogy and school digital media.',
     },
     content: `# The Art of Lesson Planning: Designing Differentiated Instruction for Grades 1–6

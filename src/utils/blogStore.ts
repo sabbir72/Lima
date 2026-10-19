@@ -22,22 +22,32 @@ export const BLOGS_UPDATED_EVENT = 'sabbir_blogs_updated';
  * Normalizes author avatar to always reflect the main profile avatar from PERSONAL_INFO
  */
 function normalizeAuthorAvatar(post: BlogPost): BlogPost {
-  const profileTitle = getStoredProfile().title;
+  const profile = getStoredProfile();
   const currentAvatar = post.author?.avatar || '';
-  const isPortfolioAuthor = !post.author?.name ||
-    post.author.name === PERSONAL_INFO.name ||
-    post.author.name === 'Sabbir Ahamed';
+  const authorName = (post.author?.name || '').trim();
+  const isPortfolioAuthor = !authorName ||
+    authorName === PERSONAL_INFO.name ||
+    authorName === profile.name ||
+    authorName === 'Sabbir Ahamed' ||
+    authorName.toLowerCase().includes('tansom') ||
+    authorName.toLowerCase().includes('lima') ||
+    authorName.toLowerCase().includes('sabbir');
   const isInternalAvatar = currentAvatar.includes('sabbir_avatar') || currentAvatar.includes('./assets') || !currentAvatar;
+
+  const resolvedAvatar = profile.avatar || PERSONAL_INFO.avatar || '/images/lima.jpeg';
+  const resolvedName = profile.name || PERSONAL_INFO.name;
+  const resolvedRole = profile.title || PERSONAL_INFO.title;
+  const resolvedBio = profile.objective || PERSONAL_INFO.objective;
 
   if (isPortfolioAuthor || isInternalAvatar) {
     return {
       ...post,
       author: {
         ...post.author,
-        name: isPortfolioAuthor ? PERSONAL_INFO.name : post.author?.name || PERSONAL_INFO.name,
-        role: isPortfolioAuthor ? profileTitle : post.author?.role || profileTitle,
-        avatar: PERSONAL_INFO.avatar || '/sabbir_avatar.jpeg',
-        bio: isPortfolioAuthor ? PERSONAL_INFO.objective : post.author?.bio || PERSONAL_INFO.objective,
+        name: isPortfolioAuthor ? resolvedName : post.author?.name || resolvedName,
+        role: isPortfolioAuthor ? resolvedRole : post.author?.role || resolvedRole,
+        avatar: resolvedAvatar,
+        bio: isPortfolioAuthor ? resolvedBio : post.author?.bio || resolvedBio,
       },
     };
   }
@@ -176,6 +186,8 @@ export function upsertBlogPost(postData: Partial<BlogPost> & { title: string; co
     year: 'numeric',
   });
 
+  const profile = getStoredProfile();
+
   if (postData.id) {
     // UPDATE existing post
     const index = posts.findIndex(p => p.id === postData.id);
@@ -197,10 +209,10 @@ export function upsertBlogPost(postData: Partial<BlogPost> & { title: string; co
         featured: postData.featured ?? existing.featured ?? false,
         status: postData.status || existing.status || 'Published',
         author: {
-          name: postData.author?.name || existing.author?.name || 'Sabbir Ahamed',
-          role: postData.author?.role || existing.author?.role || getStoredProfile().title,
-          avatar: postData.author?.avatar || existing.author?.avatar || '/sabbir_avatar.jpeg',
-          bio: postData.author?.bio || existing.author?.bio || PERSONAL_INFO.objective,
+          name: postData.author?.name || existing.author?.name || profile.name || PERSONAL_INFO.name,
+          role: postData.author?.role || existing.author?.role || profile.title || PERSONAL_INFO.title,
+          avatar: postData.author?.avatar || existing.author?.avatar || profile.avatar || PERSONAL_INFO.avatar || '/images/lima.jpeg',
+          bio: postData.author?.bio || existing.author?.bio || profile.objective || PERSONAL_INFO.objective,
         },
       };
 
@@ -218,17 +230,17 @@ export function upsertBlogPost(postData: Partial<BlogPost> & { title: string; co
     category: postData.category || 'English Pedagogy',
     description: postData.description || '',
     content: postData.content,
-    coverImage: postData.coverImage || 'https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?auto=format&fit=crop&q=80&w=1200',
+    coverImage: postData.coverImage || '/images/showcase_interactive_classroom.jpg',
     publishDate: postData.publishDate || formattedDate,
     readingTime: postData.readingTime || calculateReadingTime(postData.content),
     tags: postData.tags && postData.tags.length > 0 ? postData.tags : ['English Pedagogy'],
     featured: postData.featured || false,
     status: postData.status || 'Published',
     author: {
-      name: postData.author?.name || PERSONAL_INFO.name,
-      role: postData.author?.role || getStoredProfile().title,
-      avatar: postData.author?.avatar || PERSONAL_INFO.avatar,
-      bio: postData.author?.bio || PERSONAL_INFO.objective,
+      name: postData.author?.name || profile.name || PERSONAL_INFO.name,
+      role: postData.author?.role || profile.title || PERSONAL_INFO.title,
+      avatar: postData.author?.avatar || profile.avatar || PERSONAL_INFO.avatar || '/images/lima.jpeg',
+      bio: postData.author?.bio || profile.objective || PERSONAL_INFO.objective,
     },
   };
 

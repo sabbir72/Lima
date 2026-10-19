@@ -2485,7 +2485,7 @@ ${profile.title || PERSONAL_INFO.title}`;
                 <div className="space-y-1.5">
                   <label className="text-xs font-mono text-[#D1D5DB] font-semibold flex items-center justify-between">
                     <span>Avatar Image URL / Path</span>
-                    <span className="text-[10px] text-[#9CA3AF]">e.g. /sabbir_avatar.jpeg</span>
+                    <span className="text-[10px] text-[#9CA3AF]">e.g. /images/lima.jpeg</span>
                   </label>
                   <input
                     type="text"

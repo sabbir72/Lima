@@ -8,7 +8,7 @@ export const initialResumeData: ResumeData = {
     phone: '+880 1617927883',
     location: 'Tongi-Gazipur, Bangladesh',
     portfolioUrl: 'tansom-lima.edu',
-    avatarUrl: '/src/assets/images/avatar_tansom_lima_1792306174589.jpg',
+    avatarUrl: '/images/lima.jpeg',
   },
   summary:
     'Dedicated and enthusiastic teacher with strong academic performance. Skilled in teaching, communication, and leadership. Seeking an opportunity to apply my knowledge, enhance my skills, and contribute effectively to the organization’s success.',
@@ -211,7 +211,7 @@ export const initialResumeData: ResumeData = {
       subtitle: 'Confidence-building methodology through classroom presentations & multimedia learning',
       description:
         'Engineered an interactive student presentation curriculum at Merit School and New Blown School. Guided Grade 1-6 students to deliver spoken presentations and express their ideas with enthusiasm, fostering noticeable improvements in English vocabulary and public confidence.',
-      image: '/src/assets/images/showcase_interactive_classroom_1792306176262.jpg',
+      image: '/images/showcase_interactive_classroom.jpg',
       period: '2024 – Present',
       highlights: [
         'Integrated creative visual aids and PowerPoint presentations for elementary learners',
@@ -226,7 +226,7 @@ export const initialResumeData: ResumeData = {
       subtitle: 'Capturing school life, educational milestones, and social media content creation',
       description:
         'Spearheaded media support at New Blown An Int’l Standard School, capturing professional photography and video coverage for assemblies, academic fairs, and campus celebrations. Edited visual media and designed Canva promotional materials for digital distribution.',
-      image: '/src/assets/images/showcase_school_media_1792306175676.jpg',
+      image: '/images/showcase_school_media.jpg',
       period: '2025 – Present',
       highlights: [
         'Photographed and recorded school milestones, seasonal celebrations, and academic programs',

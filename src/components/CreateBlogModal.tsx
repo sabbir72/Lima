@@ -77,10 +77,10 @@ export default function CreateBlogModal({ isOpen, onClose, postToEdit, onSaved }
   const [tagsInput, setTagsInput] = useState('');
 
   // Author details
-  const [authorName, setAuthorName] = useState(PERSONAL_INFO.name);
-  const [authorRole, setAuthorRole] = useState(profile.title);
-  const [authorAvatar, setAuthorAvatar] = useState(PERSONAL_INFO.avatar);
-  const [authorBio, setAuthorBio] = useState(PERSONAL_INFO.objective);
+  const [authorName, setAuthorName] = useState(profile.name || PERSONAL_INFO.name);
+  const [authorRole, setAuthorRole] = useState(profile.title || PERSONAL_INFO.title);
+  const [authorAvatar, setAuthorAvatar] = useState(profile.avatar || PERSONAL_INFO.avatar || '/images/lima.jpeg');
+  const [authorBio, setAuthorBio] = useState(profile.objective || PERSONAL_INFO.objective);
 
   // UI state
   const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write');
@@ -108,14 +108,17 @@ export default function CreateBlogModal({ isOpen, onClose, postToEdit, onSaved }
         setPublishDate(postToEdit.publishDate);
         setReadingTime(postToEdit.readingTime);
         setTagsInput(postToEdit.tags ? postToEdit.tags.join(', ') : '');
-        setAuthorName(postToEdit.author?.name || PERSONAL_INFO.name);
-        setAuthorRole(postToEdit.author?.role || profile.title);
+        setAuthorName(postToEdit.author?.name || profile.name || PERSONAL_INFO.name);
+        setAuthorRole(postToEdit.author?.role || profile.title || PERSONAL_INFO.title);
         setAuthorAvatar(
-          postToEdit.author?.name === PERSONAL_INFO.name || !postToEdit.author?.avatar || postToEdit.author?.avatar.includes('sabbir_avatar')
-            ? (PERSONAL_INFO.avatar || '/sabbir_avatar.jpeg')
+          postToEdit.author?.name === PERSONAL_INFO.name ||
+          postToEdit.author?.name === profile.name ||
+          !postToEdit.author?.avatar ||
+          postToEdit.author?.avatar.includes('sabbir_avatar')
+            ? (profile.avatar || PERSONAL_INFO.avatar || '/images/lima.jpeg')
             : postToEdit.author.avatar
         );
-        setAuthorBio(postToEdit.author?.bio || PERSONAL_INFO.objective);
+        setAuthorBio(postToEdit.author?.bio || profile.objective || PERSONAL_INFO.objective);
       } else {
         // Defaults for new blog
         const todayFormatted = new Date().toLocaleDateString('en-US', {
@@ -135,13 +138,13 @@ export default function CreateBlogModal({ isOpen, onClose, postToEdit, onSaved }
         setPublishDate(todayFormatted);
         setReadingTime('');
         setTagsInput('English Pedagogy, Classroom Learning, Lesson Planning');
-        setAuthorName(PERSONAL_INFO.name);
-        setAuthorRole(profile.title);
-        setAuthorAvatar(PERSONAL_INFO.avatar);
-        setAuthorBio(PERSONAL_INFO.objective);
+        setAuthorName(profile.name || PERSONAL_INFO.name);
+        setAuthorRole(profile.title || PERSONAL_INFO.title);
+        setAuthorAvatar(profile.avatar || PERSONAL_INFO.avatar || '/images/lima.jpeg');
+        setAuthorBio(profile.objective || PERSONAL_INFO.objective);
       }
     }
-  }, [isOpen, postToEdit]);
+  }, [isOpen, postToEdit, profile]);
 
   // Handle title change and auto-slug generation
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -210,10 +213,10 @@ export default function CreateBlogModal({ isOpen, onClose, postToEdit, onSaved }
         readingTime: readingTime || calculateReadingTime(content),
         tags: parsedTags.length > 0 ? parsedTags : ['English Pedagogy'],
         author: {
-          name: authorName.trim() || PERSONAL_INFO.name,
-          role: authorRole.trim() || profile.title,
-          avatar: authorAvatar.trim() || PERSONAL_INFO.avatar,
-          bio: authorBio.trim() || PERSONAL_INFO.objective,
+          name: authorName.trim() || profile.name || PERSONAL_INFO.name,
+          role: authorRole.trim() || profile.title || PERSONAL_INFO.title,
+          avatar: authorAvatar.trim() || profile.avatar || PERSONAL_INFO.avatar || '/images/lima.jpeg',
+          bio: authorBio.trim() || profile.objective || PERSONAL_INFO.objective,
         },
       });
 

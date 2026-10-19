@@ -34,12 +34,14 @@ import { PORTFOLIO_UPDATED_EVENT } from '../utils/portfolioStore';
 import { isAdminAuthenticated } from '../utils/adminAuth';
 import { navigateTo } from '../utils/router';
 import { PERSONAL_INFO } from '../data';
+import { usePortfolioProfile } from '../utils/usePortfolioProfile';
 import CreateBlogModal from './CreateBlogModal';
 import AdminPasscodeModal from './AdminPasscodeModal';
 
-const getAuthorAvatar = (author?: { name?: string; avatar?: string }) => {
+const getAuthorAvatar = (author?: { name?: string; avatar?: string }, fallbackAvatar?: string) => {
+  const defaultAvatar = fallbackAvatar || PERSONAL_INFO.avatar || '/images/lima.jpeg';
   if (!author || !author.avatar || author.avatar.includes('sabbir_avatar') || author.name === PERSONAL_INFO.name) {
-    return PERSONAL_INFO.avatar || '/sabbir_avatar.jpeg';
+    return defaultAvatar;
   }
   return author.avatar;
 };
@@ -91,10 +93,29 @@ export default function BlogPost({ slug, onBackToBlog, onSelectPost, onOpenConta
     }
   };
 
+  const profile = usePortfolioProfile();
+
   // Find post matching slug
   const post = useMemo(() => {
     return posts.find((p) => p.slug === slug) || posts[0];
   }, [posts, slug]);
+
+  // Synchronize author display details with user profile
+  const displayAuthor = useMemo(() => {
+    const authorName = (post?.author?.name || '').trim();
+    const isOwner = !authorName ||
+      authorName === profile.name ||
+      authorName === 'Sabbir Ahamed' ||
+      authorName.toLowerCase().includes('tansom') ||
+      authorName.toLowerCase().includes('lima');
+
+    return {
+      name: isOwner ? profile.name : post.author.name,
+      role: isOwner ? profile.title : post.author.role,
+      avatar: isOwner ? (profile.avatar || '/images/lima.jpeg') : getAuthorAvatar(post.author, profile.avatar),
+      bio: isOwner ? profile.objective : post.author.bio,
+    };
+  }, [post, profile]);
 
   // Determine previous and next articles
   const { prevPost, nextPost } = useMemo(() => {
@@ -227,16 +248,16 @@ export default function BlogPost({ slug, onBackToBlog, onSelectPost, onOpenConta
             {/* Author */}
             <div className="flex items-center space-x-3">
               <img
-                src={getAuthorAvatar(post.author)}
-                alt={post.author.name}
+                src={displayAuthor.avatar}
+                alt={displayAuthor.name}
                 className="w-10 h-10 rounded-full border border-[var(--color-accent)] object-cover"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = PERSONAL_INFO.avatar || '/sabbir_avatar.jpeg';
+                  (e.target as HTMLImageElement).src = '/images/lima.jpeg';
                 }}
               />
               <div>
-                <p className="text-white font-bold">{post.author.name}</p>
-                <p className="text-[11px] text-[#9CA3AF]">{post.author.role}</p>
+                <p className="text-white font-bold">{displayAuthor.name}</p>
+                <p className="text-[11px] text-[#9CA3AF]">{displayAuthor.role}</p>
               </div>
             </div>
 
@@ -447,19 +468,19 @@ export default function BlogPost({ slug, onBackToBlog, onSelectPost, onOpenConta
         {/* ==================== AUTHOR BIO CARD ==================== */}
         <div className="p-6 rounded-3xl bg-[#12151C] border border-white/10 flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
           <img
-            src={getAuthorAvatar(post.author)}
-            alt={post.author.name}
+            src={displayAuthor.avatar}
+            alt={displayAuthor.name}
             className="w-20 h-20 rounded-2xl border-2 border-[var(--color-accent)] object-cover shrink-0 shadow-lg"
             onError={(e) => {
-              (e.target as HTMLImageElement).src = PERSONAL_INFO.avatar || '/sabbir_avatar.jpeg';
+              (e.target as HTMLImageElement).src = '/images/lima.jpeg';
             }}
           />
           <div className="space-y-2 flex-1">
             <div className="flex items-center justify-center sm:justify-start space-x-2">
-              <h4 className="font-display font-bold text-lg text-white">{post.author.name}</h4>
+              <h4 className="font-display font-bold text-lg text-white">{displayAuthor.name}</h4>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--color-accent)]/20 text-[var(--color-accent)] font-bold">Educator Author</span>
             </div>
-            <p className="text-xs text-[#9CA3AF] leading-relaxed font-light">{post.author.bio}</p>
+            <p className="text-xs text-[#9CA3AF] leading-relaxed font-light">{displayAuthor.bio}</p>
           </div>
         </div>
 

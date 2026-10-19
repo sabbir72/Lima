@@ -22,10 +22,12 @@ import { BlogPost } from '../data/blogs';
 import { getStoredBlogPosts, BLOGS_UPDATED_EVENT } from '../utils/blogStore';
 import { PORTFOLIO_UPDATED_EVENT } from '../utils/portfolioStore';
 import { PERSONAL_INFO } from '../data';
+import { usePortfolioProfile } from '../utils/usePortfolioProfile';
 
-const getAuthorAvatar = (author?: { name?: string; avatar?: string }) => {
+const getAuthorAvatar = (author?: { name?: string; avatar?: string }, fallbackAvatar?: string) => {
+  const defaultAvatar = fallbackAvatar || PERSONAL_INFO.avatar || '/images/lima.jpeg';
   if (!author || !author.avatar || author.avatar.includes('sabbir_avatar') || author.name === PERSONAL_INFO.name) {
-    return PERSONAL_INFO.avatar || '/sabbir_avatar.jpeg';
+    return defaultAvatar;
   }
   return author.avatar;
 };
@@ -36,6 +38,7 @@ interface BlogSectionProps {
 }
 
 export default function BlogSection({ onSelectPost, onViewAllBlog }: BlogSectionProps) {
+  const profile = usePortfolioProfile();
   const [posts, setPosts] = useState<BlogPost[]>(() => getStoredBlogPosts());
 
   useEffect(() => {
@@ -139,14 +142,30 @@ export default function BlogSection({ onSelectPost, onViewAllBlog }: BlogSection
                   <div className="pt-4 border-t border-white/10 flex items-center justify-between">
                     <div className="flex items-center space-x-2.5">
                       <img
-                        src={getAuthorAvatar(featuredPost.author)}
+                        src={
+                          (!featuredPost.author?.name ||
+                           featuredPost.author.name === profile.name ||
+                           featuredPost.author.name === PERSONAL_INFO.name ||
+                           featuredPost.author.name === 'Sabbir Ahamed' ||
+                           featuredPost.author.name.toLowerCase().includes('tansom'))
+                            ? (profile.avatar || '/images/lima.jpeg')
+                            : getAuthorAvatar(featuredPost.author, profile.avatar)
+                        }
                         alt={featuredPost.author.name}
                         className="w-7 h-7 rounded-full border border-[var(--color-accent)] object-cover"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = PERSONAL_INFO.avatar || '/sabbir_avatar.jpeg';
+                          (e.target as HTMLImageElement).src = '/images/lima.jpeg';
                         }}
                       />
-                      <span className="text-xs font-mono text-[#D1D5DB]">{featuredPost.author.name}</span>
+                      <span className="text-xs font-mono text-[#D1D5DB]">
+                        {(!featuredPost.author?.name ||
+                          featuredPost.author.name === profile.name ||
+                          featuredPost.author.name === PERSONAL_INFO.name ||
+                          featuredPost.author.name === 'Sabbir Ahamed' ||
+                          featuredPost.author.name.toLowerCase().includes('tansom'))
+                          ? profile.name
+                          : featuredPost.author.name}
+                      </span>
                     </div>
                     <div className="inline-flex items-center space-x-1 text-xs font-mono font-bold text-[var(--color-accent)] group-hover:translate-x-1 transition-transform">
                       <span>Read Full Article</span>
