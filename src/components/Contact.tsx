@@ -64,7 +64,14 @@ export default function Contact({ onOpenResumeBuilder }: ContactProps) {
         body: JSON.stringify(formData),
       });
 
-      const data = await response.json();
+      let data: any = {};
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        data = { error: text || 'Server returned an invalid response' };
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to send message. Please check server configuration.');

@@ -572,8 +572,8 @@ export function importPortfolioDataJson(jsonString: string): boolean {
       experiences: Array.isArray(parsed.experiences) ? parsed.experiences : current.experiences,
       skills: Array.isArray(parsed.skills) ? parsed.skills : current.skills,
       references: Array.isArray(parsed.references)
-        ? parsed.references.map((ref, index) => ({ ...ref, id: ref?.id || `ref-${index + 1}` }))
-        : current.references || [...DEFAULT_REFERENCES].map((ref, index) => ({ ...ref, id: ref.id || `ref-${index + 1}` })),
+        ? parsed.references.map((ref: any, index: number) => ({ ...ref, id: ref?.id || `ref-${index + 1}` }))
+        : (current.references || [...DEFAULT_REFERENCES]).map((ref: any, index: number) => ({ ...ref, id: ref.id || `ref-${index + 1}` })),
       profile: parsed.profile ? { ...DEFAULT_PROFILE, ...parsed.profile } : current.profile || { ...DEFAULT_PROFILE },
       lastModified: new Date().toISOString(),
     };
