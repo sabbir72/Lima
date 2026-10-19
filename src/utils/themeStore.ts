@@ -1,11 +1,11 @@
 /**
  * -----------------------------------------
- * Project     : Sabbir Ahamed SQA Portfolio
+ * Project     : Tansom Akther Lima Educator Portfolio
  * Module      : Dynamic Theme & Color View Manager
- * Description : Centralized color theme system providing modern executive palettes
- *               tailored for Software Quality Assurance & SDET engineering portfolios.
+ * Description : Centralized color theme system providing refined palettes
+ *               for an educator and educational media portfolio.
  *               Persists user selection across sessions with live CSS custom property injection.
- * Author      : Sabbir Ahamed
+ * Author      : Tansom Akther Lima
  * Last Updated: 2026-10-14
  * -----------------------------------------
  */
@@ -160,7 +160,7 @@ export function setAndApplyTheme(themeId: string): ColorTheme {
   applyThemeToDocument(selected);
 
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('sqa_theme_changed', { detail: selected }));
+    window.dispatchEvent(new CustomEvent('lima_theme_changed', { detail: selected }));
   }
 
   return selected;

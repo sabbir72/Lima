@@ -33,7 +33,7 @@ export const TopNav: React.FC<TopNavProps> = ({
             <ShieldCheck className="h-5 w-5" />
           </div>
           <span className="text-lg font-bold tracking-tight text-white whitespace-nowrap">
-            Tansom<span className="text-[#00df82]">.Edu</span>
+            T.A<span className="text-[#00df82]"> Lima</span>
           </span>
         </button>
 

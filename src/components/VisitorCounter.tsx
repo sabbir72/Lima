@@ -1,10 +1,10 @@
 /**
  * -----------------------------------------
- * Project     : Sabbir Ahamed SQA Portfolio
+ * Project     : Tansom Akther Lima Educator Portfolio
  * Module      : Visitor Counter & Live Analytics Badge
  * Description : Displays total site visitors, pageviews, and live active session
  *               metrics with animated counters and responsive tooltip details.
- * Author      : Sabbir Ahamed
+ * Author      : Tansom Akther Lima
  * Last Updated: 2026-08-12
  * -----------------------------------------
  */

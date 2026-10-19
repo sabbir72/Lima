@@ -10,7 +10,6 @@ import EducationAndReferences from './components/EducationAndReferences';
 import Contact from './components/Contact';
 import ResumeBuilderModal from './components/ResumeBuilderModal';
 import CoverLetterGeneratorModal from './components/CoverLetterGeneratorModal';
-import ThemeSelectorModal from './components/ThemeSelectorModal';
 import AdminPasscodeModal from './components/AdminPasscodeModal';
 import AdminPortal from './components/AdminPortal';
 import AdminQuickAccess from './components/AdminQuickAccess';
@@ -28,7 +27,6 @@ export default function App() {
   const [dark, setDark] = useState<boolean>(true);
   const [isResumeModalOpen, setIsResumeModalOpen] = useState<boolean>(false);
   const [isCoverLetterModalOpen, setIsCoverLetterModalOpen] = useState<boolean>(false);
-  const [isThemeModalOpen, setIsThemeModalOpen] = useState<boolean>(false);
   const [isAdminPasscodeModalOpen, setIsAdminPasscodeModalOpen] = useState<boolean>(false);
   const [adminChallengeAction, setAdminChallengeAction] = useState<'resume' | 'coverLetter' | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(() => isAdminAuthenticated());
@@ -78,10 +76,6 @@ export default function App() {
 
   const handleOpenCoverLetter = () => {
     setIsCoverLetterModalOpen(true);
-  };
-
-  const handleOpenThemeSelector = () => {
-    setIsThemeModalOpen(true);
   };
 
   const handleOpenAdminLogin = () => {
@@ -188,14 +182,6 @@ export default function App() {
         />
       )}
 
-      {/* Theme Customizer Modal */}
-      {isThemeModalOpen && (
-        <ThemeSelectorModal
-          isOpen={isThemeModalOpen}
-          onClose={() => setIsThemeModalOpen(false)}
-        />
-      )}
-
       {/* Passcode Challenge Modal */}
       {isAdminPasscodeModalOpen && (
         <AdminPasscodeModal
@@ -228,7 +214,7 @@ export default function App() {
               </div>
               <div>
                 <span className="font-display font-extrabold text-white text-base tracking-tight block">
-                  Tansom<span className="text-[var(--color-accent)]">.Edu</span>
+                  T.A<span className="text-[var(--color-accent)]"> Lima</span>
                 </span>
                 <span className="text-xs text-[#9CA3AF] font-mono">
                   {PERSONAL_INFO.title}
@@ -264,18 +250,6 @@ export default function App() {
               )}
             </div>
 
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleOpenThemeSelector}
-                className="text-xs font-mono text-[var(--color-accent)] hover:underline cursor-pointer"
-              >
-                Change Palette
-              </button>
-              <span className="text-white/20">•</span>
-              <p className="font-sans text-[#D1D5DB] font-light">
-                Designed & Developed by <span className="text-white font-medium">{PERSONAL_INFO.name}</span> — {PERSONAL_INFO.title}
-              </p>
-            </div>
           </div>
         </div>
       </footer>

@@ -1,10 +1,10 @@
 /**
  * -----------------------------------------
- * Project     : Sabbir Ahamed SQA Portfolio
+ * Project     : Tansom Akther Lima Educator Portfolio
  * Module      : Visitor Analytics & Counter Utility
  * Description : Tracks total site visitors, unique sessions, and pageviews via
  *               backend API with seamless offline/client-side fallback.
- * Author      : Sabbir Ahamed
+ * Author      : Tansom Akther Lima
  * Last Updated: 2026-08-12
  * -----------------------------------------
  */
@@ -17,9 +17,9 @@ export interface VisitorMetrics {
 }
 
 const VISITOR_STATS_EVENT = 'visitor_stats_updated';
-const VISITOR_ID_KEY = 'sabbir_sqa_visitor_id';
-const SESSION_KEY = 'sabbir_sqa_session';
-const LOCAL_STORAGE_STATS_KEY = 'sabbir_sqa_visitor_stats';
+const VISITOR_ID_KEY = 'tansom_edu_visitor_id';
+const SESSION_KEY = 'tansom_edu_session';
+const LOCAL_STORAGE_STATS_KEY = 'tansom_edu_visitor_stats';
 
 /**
  * Get or create unique persistent visitor identifier (unique per browser/device)

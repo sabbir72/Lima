@@ -1,6 +1,6 @@
 /**
  * -----------------------------------------
- * Project     : Sabbir Ahamed SQA Portfolio
+ * Project     : Tansom Akther Lima Educator Portfolio
  * Module      : Create / Edit Blog Post Modal
  * Description : Full-featured modal form to create, edit, draft, and publish blog articles
  *               with rich Markdown editor, slug auto-generation, and cover image picker.
@@ -52,19 +52,19 @@ interface CreateBlogModalProps {
 
 // Preset cover images for quick selection
 const PRESET_COVER_IMAGES = [
-  { label: 'Automation & Playwright', url: 'https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?auto=format&fit=crop&q=80&w=1200' },
-  { label: 'Finance & ERPNext', url: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=1200' },
-  { label: 'AI & Machine Learning', url: 'https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&q=80&w=1200' },
-  { label: 'QA Career & Team', url: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=1200' },
-  { label: 'Software Testing & Code', url: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=1200' },
-  { label: 'API Testing & Tech', url: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=1200' },
+  { label: 'Classroom Learning', url: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=1200' },
+  { label: 'English Pedagogy', url: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&q=80&w=1200' },
+  { label: 'Lesson Planning', url: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=1200' },
+  { label: 'School Community', url: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&q=80&w=1200' },
+  { label: 'Educational Media', url: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=1200' },
+  { label: 'Creative Learning', url: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&q=80&w=1200' },
 ];
 
 export default function CreateBlogModal({ isOpen, onClose, postToEdit, onSaved }: CreateBlogModalProps) {
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
-  const [category, setCategory] = useState<BlogPost['category']>('Software Testing');
+  const [category, setCategory] = useState<BlogPost['category']>('English Pedagogy');
   const [description, setDescription] = useState('');
   const [content, setContent] = useState('');
   const [coverImage, setCoverImage] = useState(PRESET_COVER_IMAGES[0].url);
@@ -75,10 +75,10 @@ export default function CreateBlogModal({ isOpen, onClose, postToEdit, onSaved }
   const [tagsInput, setTagsInput] = useState('');
 
   // Author details
-  const [authorName, setAuthorName] = useState(PERSONAL_INFO.name || 'Sabbir Ahamed');
-  const [authorRole, setAuthorRole] = useState(PERSONAL_INFO.title || 'Software Quality Assurance Engineer');
-  const [authorAvatar, setAuthorAvatar] = useState(PERSONAL_INFO.avatar || '/sabbir_avatar.jpeg');
-  const [authorBio, setAuthorBio] = useState('SQA Engineer specializing in Manual & Automated Testing, API Validation, ERPNext QA, and CI/CD Quality Gates.');
+  const [authorName, setAuthorName] = useState(PERSONAL_INFO.name);
+  const [authorRole, setAuthorRole] = useState(PERSONAL_INFO.title);
+  const [authorAvatar, setAuthorAvatar] = useState(PERSONAL_INFO.avatar);
+  const [authorBio, setAuthorBio] = useState(PERSONAL_INFO.objective);
 
   // UI state
   const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write');
@@ -113,7 +113,7 @@ export default function CreateBlogModal({ isOpen, onClose, postToEdit, onSaved }
             ? (PERSONAL_INFO.avatar || '/sabbir_avatar.jpeg')
             : postToEdit.author.avatar
         );
-        setAuthorBio(postToEdit.author?.bio || 'SQA Engineer specializing in Manual & Automated Testing.');
+        setAuthorBio(postToEdit.author?.bio || PERSONAL_INFO.objective);
       } else {
         // Defaults for new blog
         const todayFormatted = new Date().toLocaleDateString('en-US', {
@@ -124,7 +124,7 @@ export default function CreateBlogModal({ isOpen, onClose, postToEdit, onSaved }
         setTitle('');
         setSlug('');
         setIsSlugManuallyEdited(false);
-        setCategory('Software Testing');
+        setCategory('English Pedagogy');
         setDescription('');
         setContent('');
         setCoverImage(PRESET_COVER_IMAGES[0].url);
@@ -132,11 +132,11 @@ export default function CreateBlogModal({ isOpen, onClose, postToEdit, onSaved }
         setFeatured(false);
         setPublishDate(todayFormatted);
         setReadingTime('');
-        setTagsInput('Software Testing, SQA, Automation');
-        setAuthorName('Sabbir Ahamed');
-        setAuthorRole('Software Quality Assurance Engineer');
-        setAuthorAvatar('/sabbir_avatar.jpeg');
-        setAuthorBio('SQA Engineer specializing in Manual & Automated Testing, API Validation, ERPNext QA, and CI/CD Quality Gates.');
+        setTagsInput('English Pedagogy, Classroom Learning, Lesson Planning');
+        setAuthorName(PERSONAL_INFO.name);
+        setAuthorRole(PERSONAL_INFO.title);
+        setAuthorAvatar(PERSONAL_INFO.avatar);
+        setAuthorBio(PERSONAL_INFO.objective);
       }
     }
   }, [isOpen, postToEdit]);
@@ -169,7 +169,7 @@ export default function CreateBlogModal({ isOpen, onClose, postToEdit, onSaved }
     setSuccessMsg('');
 
     if (!isAdminAuthenticated()) {
-      setErrorMsg('Access Denied: Only authenticated Admin (Sabbir Ahamed) can create or update blog posts.');
+      setErrorMsg('Access Denied: Only the authenticated portfolio administrator can create or update blog posts.');
       return;
     }
 
@@ -206,12 +206,12 @@ export default function CreateBlogModal({ isOpen, onClose, postToEdit, onSaved }
         featured,
         publishDate: publishDate.trim() || new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
         readingTime: readingTime || calculateReadingTime(content),
-        tags: parsedTags.length > 0 ? parsedTags : ['SQA'],
+        tags: parsedTags.length > 0 ? parsedTags : ['English Pedagogy'],
         author: {
-          name: authorName.trim() || 'Sabbir Ahamed',
-          role: authorRole.trim() || 'SQA Engineer',
-          avatar: authorAvatar.trim() || '/sabbir_avatar.jpeg',
-          bio: authorBio.trim() || 'SQA Engineer.',
+          name: authorName.trim() || PERSONAL_INFO.name,
+          role: authorRole.trim() || PERSONAL_INFO.title,
+          avatar: authorAvatar.trim() || PERSONAL_INFO.avatar,
+          bio: authorBio.trim() || PERSONAL_INFO.objective,
         },
       });
 
@@ -246,7 +246,7 @@ export default function CreateBlogModal({ isOpen, onClose, postToEdit, onSaved }
               Admin Authentication Required
             </h3>
             <p className="text-xs font-mono text-[#9CA3AF] leading-relaxed">
-              Only the portfolio administrator (Sabbir Ahamed) has permission to create, edit, or publish articles.
+              Only the verified portfolio administrator can create, edit, or publish articles.
             </p>
           </div>
           <button
@@ -277,7 +277,7 @@ export default function CreateBlogModal({ isOpen, onClose, postToEdit, onSaved }
                 {postToEdit ? 'Edit Blog Post' : 'Create New Blog Post'}
               </h2>
               <p className="text-xs font-mono text-[#9CA3AF]">
-                {postToEdit ? `Updating ID: ${postToEdit.id}` : 'Draft, format, and publish your SQA technical article'}
+                {postToEdit ? `Updating ID: ${postToEdit.id}` : 'Draft, format, and publish an education or classroom article'}
               </p>
             </div>
           </div>
@@ -320,7 +320,7 @@ export default function CreateBlogModal({ isOpen, onClose, postToEdit, onSaved }
                 type="text"
                 value={title}
                 onChange={handleTitleChange}
-                placeholder="e.g. Master Playwright API Automation & JWT Authentication"
+                placeholder="e.g. Building Confident English Speakers Through Classroom Presentations"
                 required
                 className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-sm text-white placeholder:text-white/30 focus:border-[var(--color-accent)] focus:outline-none transition-colors"
               />
@@ -338,7 +338,7 @@ export default function CreateBlogModal({ isOpen, onClose, postToEdit, onSaved }
                   setSlug(e.target.value);
                   setIsSlugManuallyEdited(true);
                 }}
-                placeholder="master-playwright-api-automation"
+                placeholder="classroom-presentation-learning"
                 className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-xs font-mono text-amber-300 placeholder:text-white/30 focus:border-[var(--color-accent)] focus:outline-none transition-colors"
               />
             </div>
@@ -487,7 +487,7 @@ export default function CreateBlogModal({ isOpen, onClose, postToEdit, onSaved }
               type="text"
               value={tagsInput}
               onChange={(e) => setTagsInput(e.target.value)}
-              placeholder="Playwright, API Testing, TypeScript, SQA, Automation"
+              placeholder="English Pedagogy, Classroom Learning, Lesson Planning"
               className="w-full px-4 py-2 rounded-xl bg-white/[0.05] border border-white/15 text-xs text-white placeholder:text-white/30 focus:border-[var(--color-accent)] focus:outline-none"
             />
           </div>
@@ -596,7 +596,7 @@ export default function CreateBlogModal({ isOpen, onClose, postToEdit, onSaved }
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 rows={12}
-                placeholder="# Article Title&#10;&#10;Write your technical blog post here in Markdown format..."
+                placeholder="# Article Title&#10;&#10;Write about a teaching strategy, classroom experience, or educational media project..."
                 required
                 className="w-full p-4 rounded-xl bg-black/40 border border-white/15 text-xs sm:text-sm font-mono text-[#E5E7EB] placeholder:text-white/20 focus:border-[var(--color-accent)] focus:outline-none leading-relaxed"
               />

@@ -1,10 +1,10 @@
 /**
  * -----------------------------------------
- * Project     : Sabbir Ahamed SQA Portfolio
+ * Project     : Tansom Akther Lima Educator Portfolio
  * Module      : Single Blog Post View
  * Description : Renders detailed single blog post with table of contents, markdown rendering,
  *               code block copy snippets, social sharing, Edit button, and article navigation.
- * Author      : Sabbir Ahamed
+ * Author      : Tansom Akther Lima
  * Last Updated: 2026-08-04
  * -----------------------------------------
  */

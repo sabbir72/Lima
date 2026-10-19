@@ -22,7 +22,7 @@ ${summary}
 
 ---
 
-## TECHNICAL & PROFESSIONAL SKILLS
+## PROFESSIONAL SKILLS & COMPETENCIES
 ${coreCompetencies
   .map((category) => `**${category.name}:** ${category.skills.map((s) => s.name).join(', ')}`)
   .join('\n\n')}
@@ -94,7 +94,7 @@ ${divider}
 ${summary}
 
 ${divider}
-TECHNICAL SKILLS & COMPETENCIES
+PROFESSIONAL SKILLS & COMPETENCIES
 ${divider}
 ${coreCompetencies
   .map((category) => `${category.name.padEnd(28)}: ${category.skills.map((s) => s.name).join(', ')}`)

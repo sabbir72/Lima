@@ -1,12 +1,12 @@
 /**
  * -----------------------------------------
- * Project     : Sabbir Ahamed SQA Portfolio
+ * Project     : Tansom Akther Lima Educator Portfolio
  * Module      : Blog List Main Page (Reader Index)
  * Description : Clean, visitor-facing Blog Index view with Hero header, category filters,
- *               instant search, sorting, and responsive technical post cards.
+ *               instant search, sorting, and responsive education article cards.
  *               Administrative creation, editing, and locking are strictly housed
  *               inside the Portfolio Admin Management System.
- * Author      : Sabbir Ahamed
+ * Author      : Tansom Akther Lima
  * Last Updated: 2026-10-14
  * -----------------------------------------
  */
@@ -145,7 +145,7 @@ export default function BlogList({ onSelectPost }: BlogListProps) {
           <div className="flex items-center gap-3 shrink-0">
             <div className="flex items-center space-x-2 px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-[#D1D5DB] shadow-sm">
               <BookOpen className="w-4 h-4 text-[var(--color-accent)]" />
-              <span><strong>{totalPublishedCount}</strong> Technical Articles</span>
+              <span><strong>{totalPublishedCount}</strong> Education Articles</span>
             </div>
           </div>
         </div>
@@ -164,7 +164,7 @@ export default function BlogList({ onSelectPost }: BlogListProps) {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search articles by title, topic, Playwright, ERPNext, API, or tags..."
+                placeholder="Search articles by title, teaching topic, classroom practice, or tags..."
                 className="w-full pl-10 pr-10 py-3 rounded-full bg-white/[0.05] border border-white/15 text-xs text-white placeholder:text-white/40 focus:border-[var(--color-accent)] focus:bg-white/[0.08] focus:outline-none transition-all font-mono"
               />
               {searchQuery && (

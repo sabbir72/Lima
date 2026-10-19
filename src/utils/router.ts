@@ -1,9 +1,9 @@
 /**
  * -----------------------------------------
- * Project     : Sabbir Ahamed SQA Portfolio
+ * Project     : Tansom Akther Lima Educator Portfolio
  * Module      : SPA Client-Side Router Helper
  * Description : Lightweight SPA URL & history synchronization for /, /blog, and /blog/:slug routes.
- * Author      : Sabbir Ahamed
+ * Author      : Tansom Akther Lima
  * Last Updated: 2026-08-02
  * -----------------------------------------
  */

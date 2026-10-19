@@ -1,11 +1,11 @@
 /**
  * -----------------------------------------
- * Project     : Sabbir Ahamed SQA Portfolio
+ * Project     : Tansom Akther Lima Educator Portfolio
  * Module      : Admin Passcode Login Modal
  * Description : Secure modal dialog requiring Admin Passcode before granting
  *               author access. Password field is strictly masked with backend
  *               validation and no client-side plaintext disclosures.
- * Author      : Sabbir Ahamed
+ * Author      : Tansom Akther Lima
  * Last Updated: 2026-10-14
  * -----------------------------------------
  */

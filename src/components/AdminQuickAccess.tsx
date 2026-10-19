@@ -1,11 +1,11 @@
 /**
  * -----------------------------------------
- * Project     : Sabbir Ahamed SQA Portfolio
+ * Project     : Tansom Akther Lima Educator Portfolio
  * Module      : Admin Quick Access Floating Dock
  * Description : An aesthetically pleasing, discreet floating trigger for the unified
  *               Portfolio Admin CMS. Replaces cluttered navbar links with a modern,
  *               high-tech glassmorphism button protected by the Common Passcode.
- * Author      : Sabbir Ahamed
+ * Author      : Tansom Akther Lima
  * Last Updated: 2026-10-07
  * -----------------------------------------
  */

@@ -1,21 +1,21 @@
 /**
  * -----------------------------------------
- * Project     : Sabbir Ahamed SQA Portfolio
+ * Project     : Tansom Akther Lima Educator Portfolio
  * Module      : Unified System Lock & Security Store
  * Description : Centralized access and lock management system controlling:
- *               1. SQA Blog Lock & Public Access Controls
+ *               1. Blog Lock & Public Access Controls
  *               2. ATS Resume Suite Passcode Locks & PDF Export Locks
  *               3. AI Cover Letter Suite Access Locks
  *               4. CMS Projects, Experience, Skills & Profile Edit Locks
  *               5. Master All-in-One Global Lock Switch
- * Author      : Sabbir Ahamed
+ * Author      : Tansom Akther Lima
  * Last Updated: 2026-10-07
  * -----------------------------------------
  */
 
 export interface SystemLocks {
-  // SQA Blog Section
-  blogLocked: boolean;             // Master lock for SQA Blog
+  // Blog Section
+  blogLocked: boolean;             // Master lock for blog content
   blogPublicBrowsing: boolean;     // Allow public to view published blogs
   blogArticleEditingLocked: boolean; // Prevent draft creation / article modification
   

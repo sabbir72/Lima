@@ -1,6 +1,6 @@
 /**
  * -----------------------------------------
- * Project     : Sabbir Ahamed SQA Portfolio
+ * Project     : Tansom Akther Lima Educator Portfolio
  * Module      : Blog Store & Persistent LocalStorage Manager
  * Description : Handles persistent storage, CRUD operations, slug generation,
  *               and reactive state events for blog articles.
@@ -12,6 +12,7 @@
 import { BlogPost, BLOG_POSTS } from '../data/blogs';
 import { isAdminAuthenticated } from './adminAuth';
 import { PERSONAL_INFO } from '../data';
+import { containsLegacyTestingContent } from './legacyContent';
 
 const STORAGE_KEY = 'sabbir_portfolio_blogs_v1';
 export const BLOGS_UPDATED_EVENT = 'sabbir_blogs_updated';
@@ -21,18 +22,20 @@ export const BLOGS_UPDATED_EVENT = 'sabbir_blogs_updated';
  */
 function normalizeAuthorAvatar(post: BlogPost): BlogPost {
   const currentAvatar = post.author?.avatar || '';
-  const isSabbir = !post.author?.name || post.author.name === PERSONAL_INFO.name;
+  const isPortfolioAuthor = !post.author?.name ||
+    post.author.name === PERSONAL_INFO.name ||
+    post.author.name === 'Sabbir Ahamed';
   const isInternalAvatar = currentAvatar.includes('sabbir_avatar') || currentAvatar.includes('./assets') || !currentAvatar;
 
-  if (isSabbir || isInternalAvatar) {
+  if (isPortfolioAuthor || isInternalAvatar) {
     return {
       ...post,
       author: {
         ...post.author,
-        name: post.author?.name || PERSONAL_INFO.name,
-        role: post.author?.role || PERSONAL_INFO.title,
+        name: isPortfolioAuthor ? PERSONAL_INFO.name : post.author?.name || PERSONAL_INFO.name,
+        role: isPortfolioAuthor ? PERSONAL_INFO.title : post.author?.role || PERSONAL_INFO.title,
         avatar: PERSONAL_INFO.avatar || '/sabbir_avatar.jpeg',
-        bio: post.author?.bio || 'SQA Engineer specializing in Manual & Automated Testing, API Validation, ERPNext QA, and CI/CD Quality Gates.',
+        bio: isPortfolioAuthor ? PERSONAL_INFO.objective : post.author?.bio || PERSONAL_INFO.objective,
       },
     };
   }
@@ -55,22 +58,29 @@ export function getStoredBlogPosts(): BlogPost[] {
       if (raw) {
         const parsed: BlogPost[] = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Ensure status field exists and sync author profile avatar from main profile
-          const synchronizedPosts = parsed.map(post => normalizeAuthorAvatar({
+          const synchronizedPosts = parsed
+            .filter(post => !containsLegacyTestingContent([
+              post.author?.name,
+              post.title,
+              post.category,
+              post.description,
+              post.content,
+              ...(post.tags || []),
+              post.author?.role,
+              post.author?.bio,
+            ].join(' ')))
+            .map(post => normalizeAuthorAvatar({
             ...post,
             status: post.status || 'Published',
           }));
 
-          // Synchronize to primary key if loaded from fallback
-          if (key !== STORAGE_KEY) {
-            try {
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(synchronizedPosts));
-            } catch (e) {
-              // ignore
-            }
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(synchronizedPosts));
+          } catch (err) {
+            console.error('Error migrating blog posts in localStorage:', err);
           }
 
-          return synchronizedPosts;
+          if (synchronizedPosts.length > 0) return synchronizedPosts;
         }
       }
     }
@@ -86,8 +96,8 @@ export function getStoredBlogPosts(): BlogPost[] {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(initialPosts));
     localStorage.setItem('sabbir_portfolio_blogs', JSON.stringify(initialPosts));
-  } catch (e) {
-    // ignore
+  } catch (err) {
+    console.error('Error initializing blog posts in localStorage:', err);
   }
   return initialPosts;
 }
@@ -176,19 +186,19 @@ export function upsertBlogPost(postData: Partial<BlogPost> & { title: string; co
         title: postData.title,
         slug: finalSlug,
         content: postData.content,
-        category: postData.category || existing.category || 'Software Testing',
+        category: postData.category || existing.category || 'English Pedagogy',
         description: postData.description || existing.description || '',
-        coverImage: postData.coverImage || existing.coverImage || 'https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?auto=format&fit=crop&q=80&w=1200',
+        coverImage: postData.coverImage || existing.coverImage || 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=1200',
         publishDate: postData.publishDate || existing.publishDate || formattedDate,
         readingTime: postData.readingTime || calculateReadingTime(postData.content),
-        tags: postData.tags || existing.tags || ['QA'],
+        tags: postData.tags || existing.tags || ['English Pedagogy'],
         featured: postData.featured ?? existing.featured ?? false,
         status: postData.status || existing.status || 'Published',
         author: {
           name: postData.author?.name || existing.author?.name || 'Sabbir Ahamed',
-          role: postData.author?.role || existing.author?.role || 'Software Quality Assurance Engineer',
+          role: postData.author?.role || existing.author?.role || PERSONAL_INFO.title,
           avatar: postData.author?.avatar || existing.author?.avatar || '/sabbir_avatar.jpeg',
-          bio: postData.author?.bio || existing.author?.bio || 'SQA Engineer specializing in Manual & Automated Testing.',
+          bio: postData.author?.bio || existing.author?.bio || PERSONAL_INFO.objective,
         },
       };
 
@@ -203,20 +213,20 @@ export function upsertBlogPost(postData: Partial<BlogPost> & { title: string; co
     id: `post_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     title: postData.title,
     slug: finalSlug,
-    category: postData.category || 'Software Testing',
+    category: postData.category || 'English Pedagogy',
     description: postData.description || '',
     content: postData.content,
     coverImage: postData.coverImage || 'https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?auto=format&fit=crop&q=80&w=1200',
     publishDate: postData.publishDate || formattedDate,
     readingTime: postData.readingTime || calculateReadingTime(postData.content),
-    tags: postData.tags && postData.tags.length > 0 ? postData.tags : ['Software Testing', 'SQA'],
+    tags: postData.tags && postData.tags.length > 0 ? postData.tags : ['English Pedagogy'],
     featured: postData.featured || false,
     status: postData.status || 'Published',
     author: {
-      name: postData.author?.name || 'Sabbir Ahamed',
-      role: postData.author?.role || 'Software Quality Assurance Engineer',
-      avatar: postData.author?.avatar || '/sabbir_avatar.jpeg',
-      bio: postData.author?.bio || 'SQA Engineer specializing in Manual & Automated Testing, API Validation, ERPNext QA, and CI/CD Quality Gates.',
+      name: postData.author?.name || PERSONAL_INFO.name,
+      role: postData.author?.role || PERSONAL_INFO.title,
+      avatar: postData.author?.avatar || PERSONAL_INFO.avatar,
+      bio: postData.author?.bio || PERSONAL_INFO.objective,
     },
   };
 

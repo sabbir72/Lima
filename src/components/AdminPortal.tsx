@@ -1,12 +1,12 @@
 /**
  * -----------------------------------------
- * Project     : Sabbir Ahamed SQA Portfolio
+ * Project     : Tansom Akther Lima Educator Portfolio
  * Module      : Unified Admin Management System (CMS)
  * Description : Centralized, complete CRUD administration panel for the entire website:
- *               Projects, Work Experience, Technical Skills, Blog Posts & Articles,
+ *               Projects, Work Experience, Teaching Skills, Blog Posts & Articles,
  *               Personal Profile & Headline Metrics, and System Security.
  *               Protected by the Common Portfolio Passcode.
- * Author      : Sabbir Ahamed
+ * Author      : Tansom Akther Lima
  * Last Updated: 2026-10-07
  * -----------------------------------------
  */
@@ -19,11 +19,11 @@ import {
   Cpu, FileCode, CheckCircle2, ChevronRight, Eye, Code, FileText, Sparkles,
   Info, Tag, Activity, Database, ClipboardList, Play, Save, BookOpen, User,
   Globe, Mail, Phone, MapPin, Linkedin, Github, Unlock, Printer, Sliders,
-  CheckSquare, Square, Building2, Send, Bookmark, Award, Target, EyeOff, Clock, Palette
+  CheckSquare, Square, Building2, Send, Bookmark, Award, Target, Clock, Palette
 } from 'lucide-react';
 import ThemeSelectorModal from './ThemeSelectorModal';
 import { COLOR_THEMES, getSavedThemeId, setAndApplyTheme } from '../utils/themeStore';
-import { Project, Experience, Skill, TestLog, Reference } from '../types';
+import { Project, Experience, Skill, Reference } from '../types';
 import { 
   getStoredProjects, addStoredProject, updateStoredProject, deleteStoredProject, reorderStoredProjects,
   getStoredExperiences, addStoredExperience, updateStoredExperience, deleteStoredExperience, reorderStoredExperiences,
@@ -89,7 +89,6 @@ export default function AdminPortal({
   const [showPasscode, setShowPasscode] = useState(false);
   const [authError, setAuthError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
-  const [showMasterPass, setShowMasterPass] = useState(false);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [currentThemeId, setCurrentThemeId] = useState<string>(() => getSavedThemeId());
 
@@ -120,8 +119,8 @@ export default function AdminPortal({
   );
 
   // Cover Letter Settings State
-  const [clCompany, setClCompany] = useState<string>('Tech Solutions Inc.');
-  const [clJobTitle, setClJobTitle] = useState<string>('Software Quality Assurance Engineer');
+  const [clCompany, setClCompany] = useState<string>('Your School');
+  const [clJobTitle, setClJobTitle] = useState<string>('English Teacher');
   const [clHiringManager, setClHiringManager] = useState<string>('Hiring Manager');
   const [clLocation, setClLocation] = useState<string>('Remote / Dhaka');
   const [clTone, setClTone] = useState<CoverLetterTone>('professional');
@@ -417,7 +416,11 @@ export default function AdminPortal({
 
   const handleSaveReference = (refData: Omit<Reference, 'id'> & { id?: string }) => {
     if (editingReference) {
-      updateStoredReference(editingReference.id || refData.id || '', refData);
+      const referenceId = editingReference.id || refData.id;
+      if (!referenceId || !updateStoredReference(referenceId, refData)) {
+        showToast('Unable to update this reference. Please refresh and try again.');
+        return;
+      }
       showToast(`Reference for "${refData.name}" updated.`);
     } else {
       addStoredReference(refData);
@@ -588,18 +591,18 @@ export default function AdminPortal({
   ) => {
     const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     let greeting = `Dear ${hMgr || 'Hiring Manager'},`;
-    let intro = `I am writing to express my strong interest in the ${jTitle} position at ${cName}. With over 2 years of hands-on experience in Software Quality Assurance, automated framework engineering (Playwright Python/TypeScript), REST API testing (Postman/Newman), and rigorous STLC workflows, I am eager to contribute to ${cName}'s product excellence.`;
+    let intro = `I am writing to express my interest in the ${jTitle} position at ${cName}. I am an enthusiastic educator with classroom experience teaching English, Science, and Bangladesh & Global Studies to English Version learners in Grades 1–6.`;
     if (tne === 'formal') {
-      intro = `Please accept this letter and the attached curriculum vitae as my formal application for the ${jTitle} role at ${cName}. Having specialized in full-cycle software testing, robust automation suites, and regression testing across enterprise systems, I offer a disciplined and meticulous approach to software reliability.`;
+      intro = `Please accept this letter and the attached curriculum vitae as my application for the ${jTitle} position at ${cName}. My teaching experience, BA (Hons) in English, and commitment to structured, student-centered learning prepare me to contribute to your school.`;
     } else if (tne === 'enthusiastic') {
-      intro = `I am thrilled to submit my application for the ${jTitle} role at ${cName}! Having tracked ${cName}'s commitment to quality software, I am genuinely excited about the prospect of bringing my Playwright automation, API testing, and defect prevention skills to your engineering team.`;
+      intro = `I am delighted to apply for the ${jTitle} position at ${cName}! I enjoy helping young learners build confidence and communication skills, and I would be excited to bring my interactive teaching approach to your school community.`;
     }
 
-    const techFocus = `Throughout my engineering journey, I have built complete end-to-end testing pipelines using Playwright, pytest, and GitHub Actions CI/CD, authored over 150+ comprehensive test scenarios, and executed exploratory testing that prevented critical production vulnerabilities. In my recent role at Altersense Limited, I spearheaded ERPNext quality audits, verified complex backend payloads, and worked in close collaboration with developers to slash regression cycle times by 40%.`;
+    const techFocus = `In my current role as ${profile.title || PERSONAL_INFO.title}, I prepare structured lesson plans, lead classroom activities, support students’ academic development, and create educational media for school programs. I also bring experience in student presentation coaching, reading fluency, and collaborative work with families and colleagues.`;
 
-    const projectHighlight = `In my live SQA Portfolio (https://github.com/sabbir72), I maintain documented testing repositories with source code available on GitHub. Key showcases include an automated eCommerce E2E Playwright Python Suite, comprehensive REST API collections with automated assertions, and a live bug reporting system.`;
+    const projectHighlight = `My portfolio highlights student-centered English learning, presentation-based classroom activities, lesson planning, and school media documentation.`;
 
-    let closing = `I would welcome the opportunity to discuss how my quality assurance rigor and automation skills can support ${cName}'s testing goals. Thank you for your time and consideration.`;
+    const closing = `I would welcome the opportunity to discuss how my teaching experience and commitment to student growth can support ${cName}'s learning community. Thank you for your time and consideration.`;
 
     return `${profile.name || PERSONAL_INFO.name}
 ${profile.location || PERSONAL_INFO.location}
@@ -651,8 +654,11 @@ ${profile.title || PERSONAL_INFO.title}`;
       deleteStoredSkillCategory(confirmDelete.index);
       showToast(`Skill category "${confirmDelete.title}" deleted.`);
     } else if (confirmDelete.type === 'reference' && confirmDelete.id) {
-      deleteStoredReference(confirmDelete.id);
-      showToast(`Reference "${confirmDelete.title}" deleted.`);
+      if (deleteStoredReference(confirmDelete.id)) {
+        showToast(`Reference "${confirmDelete.title}" deleted.`);
+      } else {
+        showToast('Unable to delete this reference. Please refresh and try again.');
+      }
     } else if (confirmDelete.type === 'blog' && confirmDelete.id) {
       deleteBlogPost(confirmDelete.id);
       showToast(`Article "${confirmDelete.title}" deleted.`);
@@ -994,7 +1000,7 @@ ${profile.title || PERSONAL_INFO.title}`;
             }`}
           >
             <div className="flex items-center justify-between text-[11px] font-mono text-[#9CA3AF]">
-              <span>SQA BLOG</span>
+              <span>EDUCATION BLOG</span>
               <Lock className="w-3.5 h-3.5 text-purple-400" />
             </div>
             <div className="text-xl font-display font-extrabold text-white mt-1">
@@ -1236,7 +1242,7 @@ ${profile.title || PERSONAL_INFO.title}`;
 
                 {/* Filter Type */}
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-                  {['All', 'Automation', 'API', 'Performance', 'Manual'].map((type) => (
+                  {['All', 'Teaching', 'Media', 'Presentation', 'Curriculum'].map((type) => (
                     <button
                       key={type}
                       onClick={() => setProjectTypeFilter(type)}
@@ -1291,11 +1297,11 @@ ${profile.title || PERSONAL_INFO.title}`;
                         <div className="space-y-1.5 flex-grow">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-mono uppercase font-bold tracking-wider ${
-                              project.type === 'Automation'
+                              project.type === 'Teaching'
                                 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                                : project.type === 'API'
+                                : project.type === 'Media'
                                 ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
-                                : project.type === 'Performance'
+                                : project.type === 'Presentation'
                                 ? 'bg-purple-500/10 text-purple-400 border border-purple-500/30'
                                 : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
                             }`}>
@@ -1376,7 +1382,7 @@ ${profile.title || PERSONAL_INFO.title}`;
                             className="inline-flex items-center space-x-1 text-[11px] font-mono text-[var(--color-accent)] hover:underline ml-2"
                           >
                             <ExternalLink className="w-3 h-3" />
-                            <span>Repository</span>
+                            <span>Project Resource</span>
                           </a>
                         )}
                       </div>
@@ -1585,7 +1591,7 @@ ${profile.title || PERSONAL_INFO.title}`;
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-display font-bold text-lg text-white">
-                  Technical SQA Skills ({skills.length} Categories • {totalSkillItems} items)
+                  Teaching & Digital Skills ({skills.length} Categories • {totalSkillItems} items)
                 </h3>
                 <p className="text-xs font-mono text-[#9CA3AF]">
                   Create categories, rename, add single chips, or remove competencies instantly.
@@ -1790,7 +1796,7 @@ ${profile.title || PERSONAL_INFO.title}`;
 
                 {/* Filter Category */}
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-                  {['All', 'Software Testing', 'Playwright', 'API Testing', 'ERPNext', 'QA Career'].map((cat) => (
+                  {['All', 'English Pedagogy', 'Educational Media', 'Lesson Design', 'Classroom Leadership', 'Academic Growth'].map((cat) => (
                     <button
                       key={cat}
                       onClick={() => setBlogCategoryFilter(cat)}
@@ -1822,7 +1828,7 @@ ${profile.title || PERSONAL_INFO.title}`;
                 <BookOpen className="w-8 h-8 text-[#9CA3AF] mx-auto" />
                 <h3 className="font-display font-bold text-lg text-white">No articles found</h3>
                 <p className="text-xs font-mono text-[#9CA3AF] max-w-sm mx-auto">
-                  Start drafting technical articles, guides, and engineering reflections.
+                  Create articles about teaching, classroom practice, and educational media.
                 </p>
                 <button
                   onClick={handleOpenAddBlog}
@@ -1992,10 +1998,11 @@ ${profile.title || PERSONAL_INFO.title}`;
                   </h4>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {[
-                      { id: 'all-rounder', label: 'All-Rounder SQA' },
-                      { id: 'automation-qa', label: 'Automation QA' },
-                      { id: 'api-testing', label: 'API Testing' },
-                      { id: 'manual-qa', label: 'Manual QA' }
+                      { id: 'all-rounder', label: 'All-Round Educator' },
+                      { id: 'english-teacher', label: 'English Teacher' },
+                      { id: 'assistant-teacher-ev', label: 'Assistant Teacher (E.V)' },
+                      { id: 'media-specialist', label: 'Educational Media' },
+                      { id: 'classroom-practice', label: 'Classroom Practice' }
                     ].map((role) => (
                       <button
                         key={role.id}
@@ -2083,15 +2090,15 @@ ${profile.title || PERSONAL_INFO.title}`;
                       </div>
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span>Playwright & Python automation terms</span>
+                        <span>Teaching, lesson planning, and classroom skills</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span>REST API & Postman verification</span>
+                        <span>Teaching Experience & Academic Resources</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span>Quantified defect reduction metrics</span>
+                        <span>Relevant academic and learner outcomes</span>
                       </div>
                     </div>
                   </div>
@@ -2201,7 +2208,7 @@ ${profile.title || PERSONAL_INFO.title}`;
                     </span>
                   </div>
                   <p className="text-xs font-mono text-[#9CA3AF] mt-1">
-                    Generate and customize tailored SQA job application cover letters with targeted company data and testing metrics.
+                    Create a role-specific teaching application letter using educator CV details and school information.
                   </p>
                 </div>
               </div>
@@ -2252,7 +2259,7 @@ ${profile.title || PERSONAL_INFO.title}`;
                           setClCompany(e.target.value);
                           setClCustomContent('');
                         }}
-                        placeholder="e.g. Brain Station 23 / Tech Corp"
+                        placeholder="e.g. New Blown An Int'l Standard School"
                         className="w-full px-3.5 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-white focus:border-indigo-400 focus:outline-none"
                       />
                     </div>
@@ -2266,7 +2273,7 @@ ${profile.title || PERSONAL_INFO.title}`;
                           setClJobTitle(e.target.value);
                           setClCustomContent('');
                         }}
-                        placeholder="e.g. Software Quality Assurance Engineer"
+                        placeholder="e.g. English Teacher"
                         className="w-full px-3.5 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-white focus:border-indigo-400 focus:outline-none"
                       />
                     </div>
@@ -2334,25 +2341,25 @@ ${profile.title || PERSONAL_INFO.title}`;
                   </div>
                 </div>
 
-                {/* SQA Keyword Alignment Analysis */}
+                {/* Teaching role alignment */}
                 <div className="p-6 rounded-3xl bg-[#12151C] border border-white/10 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
                       <Award className="w-3.5 h-3.5 text-indigo-400" />
-                      <span>Targeted SQA Qualifications</span>
+                      <span>Teaching & Education Qualifications</span>
                     </span>
                     <span className="text-[10px] font-mono text-emerald-400">94% Match</span>
                   </div>
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {[
-                      'Playwright Automation',
-                      'Python Test Scripts',
-                      'REST API Testing (Postman)',
-                      'Newman CLI',
-                      'Jira Defect Lifecycle',
-                      'STLC & Agile',
-                      'Regression Testing',
-                      'CI/CD Pipelines'
+                      'English Language Instruction',
+                      'Lesson Planning',
+                      'Classroom Leadership',
+                      'Student Mentorship',
+                      'Reading Fluency',
+                      'Presentation-Based Learning',
+                      'Curriculum Support',
+                      'Educational Media'
                     ].map((kw, i) => (
                       <span
                         key={i}
@@ -2414,7 +2421,7 @@ ${profile.title || PERSONAL_INFO.title}`;
 
                   <div className="pt-2 flex items-center justify-between text-[11px] font-mono text-[#9CA3AF]">
                     <span>Words: {(clCustomContent || generateAdminCoverLetter(clCompany, clJobTitle, clHiringManager, clLocation, clTone)).split(/\s+/).filter(Boolean).length}</span>
-                    <span>Ready for submission with SQA portfolio credentials</span>
+                    <span>Ready to tailor with educator CV details</span>
                   </div>
                 </div>
               </div>
@@ -2584,41 +2591,31 @@ ${profile.title || PERSONAL_INFO.title}`;
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-mono text-[#D1D5DB]">Test Cases</label>
+                    <label className="text-[11px] font-mono text-[#D1D5DB]">Grade Levels Taught</label>
                     <input
                       type="text"
-                      value={profile.testCasesCount}
-                      onChange={(e) => setProfile({ ...profile, testCasesCount: e.target.value })}
+                      value={profile.gradeLevelsTaught}
+                      onChange={(e) => setProfile({ ...profile, gradeLevelsTaught: e.target.value })}
                       className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-mono text-[#D1D5DB]">Bugs Reported</label>
+                    <label className="text-[11px] font-mono text-[#D1D5DB]">Academic Result</label>
                     <input
                       type="text"
-                      value={profile.bugsReportedCount}
-                      onChange={(e) => setProfile({ ...profile, bugsReportedCount: e.target.value })}
+                      value={profile.academicCgpa}
+                      onChange={(e) => setProfile({ ...profile, academicCgpa: e.target.value })}
                       className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-mono text-[#D1D5DB]">Automation Scripts</label>
+                    <label className="text-[11px] font-mono text-[#D1D5DB]">Student Engagement</label>
                     <input
                       type="text"
-                      value={profile.automationScriptsCount}
-                      onChange={(e) => setProfile({ ...profile, automationScriptsCount: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-mono text-[#D1D5DB]">Defect Detection</label>
-                    <input
-                      type="text"
-                      value={profile.defectDetectionRate}
-                      onChange={(e) => setProfile({ ...profile, defectDetectionRate: e.target.value })}
+                      value={profile.studentEngagementRate}
+                      onChange={(e) => setProfile({ ...profile, studentEngagementRate: e.target.value })}
                       className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-white"
                     />
                   </div>
@@ -2758,7 +2755,7 @@ ${profile.title || PERSONAL_INFO.title}`;
                       </span>
                     </div>
                     <p className="text-xs font-mono text-[#9CA3AF] max-w-2xl leading-relaxed">
-                      Centralized administrative lock controls for the entire portfolio: SQA Blog section, ATS Resume Suite, AI Cover Letter Studio, and Portfolio CMS Content.
+                      Centralized administrative lock controls for the portfolio blog, CV builder, cover-letter studio, and profile content.
                     </p>
                   </div>
                 </div>
@@ -2796,7 +2793,7 @@ ${profile.title || PERSONAL_INFO.title}`;
 
               {/* Modular Lock Control Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* LOCK CARD 1: SQA BLOG SECTION LOCK */}
+                {/* Education blog section lock */}
                 <div className="p-5 rounded-2xl bg-white/[0.03] border border-purple-500/30 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -2804,8 +2801,8 @@ ${profile.title || PERSONAL_INFO.title}`;
                         <BookOpen className="w-4 h-4" />
                       </div>
                       <div>
-                        <h4 className="font-display font-bold text-sm text-white">SQA Blog Section Lock</h4>
-                        <span className="text-[10px] font-mono text-[#9CA3AF]">Technical Articles & Publishing</span>
+                        <h4 className="font-display font-bold text-sm text-white">Education Blog Section Lock</h4>
+                        <span className="text-[10px] font-mono text-[#9CA3AF]">Teaching Articles & Publishing</span>
                       </div>
                     </div>
                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
@@ -2816,14 +2813,14 @@ ${profile.title || PERSONAL_INFO.title}`;
                   </div>
 
                   <p className="text-xs text-[#9CA3AF] font-light leading-relaxed">
-                    Controls whether visitors can access the SQA knowledge base, and restricts draft publishing to verified admins.
+                    Controls public access to teaching articles and restricts draft publishing to verified administrators.
                   </p>
 
                   <div className="space-y-2 pt-1 border-t border-white/[0.06]">
                     <div className="flex items-center justify-between text-xs font-mono">
                       <span className="text-[#D1D5DB]">Strict Admin Blog Lock</span>
                       <button
-                        onClick={() => handleToggleLock('blogLocked', 'SQA Blog Master Lock')}
+                        onClick={() => handleToggleLock('blogLocked', 'Education Blog Master Lock')}
                         className={`px-3 py-1 rounded-lg font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
                           systemLocks.blogLocked
                             ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
@@ -3076,47 +3073,21 @@ ${profile.title || PERSONAL_INFO.title}`;
                 </div>
               </div>
 
-              {/* Master Administrator Passcode & Encryption Card */}
+              {/* Passcode management guidance */}
               <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="text-xs font-mono text-[#D1D5DB] font-semibold flex items-center gap-2">
                     <KeyRound className="w-3.5 h-3.5 text-[var(--color-accent)]" />
-                    <span>Common Administrator Passcode (Hidden by Default)</span>
+                    <span>Administrator Passcode</span>
                   </div>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center gap-1">
                     <ShieldCheck className="w-3 h-3" />
-                    <span>Encrypted & Masked</span>
+                    <span>Protected</span>
                   </span>
-                </div>
-                <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/40 border border-white/10 font-mono text-sm text-[#D1D5DB]">
-                  <span className="tracking-widest font-bold text-[var(--color-accent)]">
-                    {showMasterPass ? 'sabbir@sqa2026' : '••••••••••••••'}
-                  </span>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowMasterPass(!showMasterPass)}
-                      className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-[#D1D5DB] hover:text-white transition-colors cursor-pointer border border-white/10"
-                    >
-                      {showMasterPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      <span>{showMasterPass ? 'Hide' : 'Reveal'}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText('sabbir@sqa2026');
-                        showToast('Admin Passcode copied to clipboard!');
-                      }}
-                      className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-white hover:text-[var(--color-accent)] transition-colors cursor-pointer border border-white/10"
-                    >
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Copy</span>
-                    </button>
-                  </div>
                 </div>
                 <p className="text-[11px] font-mono text-[#9CA3AF] flex items-center gap-1.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span>The master password string is hidden. All passcode inputs throughout the site are masked with placeholder <code className="text-white font-bold bg-white/10 px-1 rounded">*****</code>.</span>
+                  <span>Passcodes are validated by the sign-in flow and are never displayed in this dashboard.</span>
                 </p>
               </div>
 
@@ -3200,6 +3171,18 @@ ${profile.title || PERSONAL_INFO.title}`;
         />
       )}
 
+      {isReferenceModalOpen && (
+        <ReferenceModal
+          isOpen={isReferenceModalOpen}
+          initialReference={editingReference}
+          onClose={() => {
+            setIsReferenceModalOpen(false);
+            setEditingReference(null);
+          }}
+          onSave={handleSaveReference}
+        />
+      )}
+
       {/* Category Modal */}
       {isCategoryModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
@@ -3222,7 +3205,7 @@ ${profile.title || PERSONAL_INFO.title}`;
                   type="text"
                   value={categoryNameInput}
                   onChange={(e) => setCategoryNameInput(e.target.value)}
-                  placeholder="e.g. Mobile Testing, Security Auditing"
+                  placeholder="e.g. Classroom Leadership, Lesson Planning"
                   required
                   className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-sm font-mono text-white focus:border-emerald-400 focus:outline-none"
                 />
@@ -3237,7 +3220,7 @@ ${profile.title || PERSONAL_INFO.title}`;
                   value={categoryItemsInput}
                   onChange={(e) => setCategoryItemsInput(e.target.value)}
                   rows={4}
-                  placeholder="Appium, Android Studio, Charles Proxy, Xcode Simulator"
+                  placeholder="Lesson Planning, English Instruction, Canva, Student Mentorship"
                   className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-xs font-mono text-white focus:border-emerald-400 focus:outline-none"
                 />
               </div>
@@ -3335,27 +3318,15 @@ interface ProjectModalProps {
 
 function ProjectModal({ isOpen, initialProject, onClose, onSave }: ProjectModalProps) {
   const [title, setTitle] = useState(initialProject?.title || '');
-  const [type, setType] = useState<Project['type']>(initialProject?.type || 'Automation');
+  const [type, setType] = useState<Project['type']>(initialProject?.type || 'Teaching');
   const [link, setLink] = useState(initialProject?.link || '');
   const [description, setDescription] = useState(initialProject?.description || '');
   const [tagsString, setTagsString] = useState(initialProject?.tags.join(', ') || '');
   
   const [metrics, setMetrics] = useState<{ label: string; value: string }[]>(
     initialProject?.metrics || [
-      { label: 'Execution', value: 'Fast' },
-      { label: 'Pass Rate', value: '100%' }
-    ]
-  );
-
-  const [assertions, setAssertions] = useState<{ name: string; status: 'PASS' | 'FAIL'; duration?: string }[]>(
-    initialProject?.assertions || [
-      { name: 'Initial assertion test', status: 'PASS', duration: '120ms' }
-    ]
-  );
-
-  const [logs, setLogs] = useState<TestLog[]>(
-    initialProject?.logs || [
-      { timestamp: '00:00:01', level: 'INFO', message: 'Test suite initialized.' }
+      { label: 'Audience', value: 'Grades 1–6' },
+      { label: 'Learning Outcome', value: 'Student Confidence' }
     ]
   );
 
@@ -3372,8 +3343,6 @@ function ProjectModal({ isOpen, initialProject, onClose, onSave }: ProjectModalP
       description: description.trim(),
       tags,
       metrics,
-      assertions,
-      logs,
     });
   };
 
@@ -3389,10 +3358,10 @@ function ProjectModal({ isOpen, initialProject, onClose, onSave }: ProjectModalP
             </div>
             <div>
               <h3 className="font-display font-bold text-xl text-white">
-                {initialProject ? 'Edit SQA Project' : 'Add New SQA Project'}
+                {initialProject ? 'Edit Portfolio Project' : 'Add Portfolio Project'}
               </h3>
               <p className="text-xs font-mono text-[#9CA3AF]">
-                Configure project metrics, assertions, tags, and execution details.
+                Add an education or media project to the professional portfolio.
               </p>
             </div>
           </div>
@@ -3414,7 +3383,7 @@ function ProjectModal({ isOpen, initialProject, onClose, onSave }: ProjectModalP
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Playwright Python API Automation Framework"
+                placeholder="e.g. Student-Centered English Presentation Workshop"
                 required
                 className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-sm font-mono text-white placeholder:text-white/30 focus:border-[var(--color-accent)] focus:outline-none"
               />
@@ -3429,10 +3398,10 @@ function ProjectModal({ isOpen, initialProject, onClose, onSave }: ProjectModalP
                 onChange={(e) => setType(e.target.value as Project['type'])}
                 className="w-full px-3 py-2.5 rounded-xl bg-[#1A1F2C] border border-white/15 text-sm font-mono text-white focus:border-[var(--color-accent)] focus:outline-none"
               >
-                <option value="Automation">Automation</option>
-                <option value="API">API</option>
-                <option value="Performance">Performance</option>
-                <option value="Manual">Manual</option>
+                <option value="Teaching">Teaching</option>
+                <option value="Media">Media</option>
+                <option value="Presentation">Presentation</option>
+                <option value="Curriculum">Curriculum</option>
               </select>
             </div>
           </div>
@@ -3440,13 +3409,13 @@ function ProjectModal({ isOpen, initialProject, onClose, onSave }: ProjectModalP
           <div className="space-y-1.5">
             <label className="text-xs font-mono text-[#D1D5DB] font-semibold flex items-center gap-1.5">
               <ExternalLink className="w-3.5 h-3.5 text-[var(--color-accent)]" />
-              GitHub or Live Documentation Link
+              Project Resource or Documentation Link
             </label>
             <input
               type="url"
               value={link}
               onChange={(e) => setLink(e.target.value)}
-              placeholder="https://github.com/sabbir72/Playwright_API_Framework"
+              placeholder="https://example.com/portfolio-project"
               className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-xs font-mono text-white placeholder:text-white/30 focus:border-[var(--color-accent)] focus:outline-none"
             />
           </div>
@@ -3459,7 +3428,7 @@ function ProjectModal({ isOpen, initialProject, onClose, onSave }: ProjectModalP
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              placeholder="Brief description of the test architecture, tools used, coverage, and outcomes..."
+              placeholder="Describe the classroom project, learning goals, media work, and outcomes..."
               className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-xs font-sans text-white placeholder:text-white/30 focus:border-[var(--color-accent)] focus:outline-none leading-relaxed"
             />
           </div>
@@ -3470,7 +3439,7 @@ function ProjectModal({ isOpen, initialProject, onClose, onSave }: ProjectModalP
                 Tags (comma-separated)
               </label>
               <div className="flex gap-1">
-                {['Playwright', 'Python', 'Pytest', 'Postman', 'Allure'].map(quickTag => (
+                {['Teaching', 'Lesson Planning', 'English', 'Canva', 'Media'].map(quickTag => (
                   <button
                     key={quickTag}
                     type="button"
@@ -3490,7 +3459,7 @@ function ProjectModal({ isOpen, initialProject, onClose, onSave }: ProjectModalP
               type="text"
               value={tagsString}
               onChange={(e) => setTagsString(e.target.value)}
-              placeholder="Playwright, Python, Pytest, Allure Reports, REST API"
+              placeholder="Teaching, Lesson Planning, English, Canva, Educational Media"
               className="w-full px-4 py-2 rounded-xl bg-white/[0.05] border border-white/15 text-xs font-mono text-white placeholder:text-white/30 focus:border-[var(--color-accent)] focus:outline-none"
             />
           </div>
@@ -3499,7 +3468,7 @@ function ProjectModal({ isOpen, initialProject, onClose, onSave }: ProjectModalP
           <div className="space-y-2 border-t border-white/[0.08] pt-4">
             <div className="flex items-center justify-between">
               <label className="text-xs font-mono text-[#D1D5DB] font-semibold">
-                Key Metrics / Architecture Highlights ({metrics.length})
+                Project Outcomes & Highlights ({metrics.length})
               </label>
               <button
                 type="button"
@@ -3533,7 +3502,7 @@ function ProjectModal({ isOpen, initialProject, onClose, onSave }: ProjectModalP
                       updated[idx].value = e.target.value;
                       setMetrics(updated);
                     }}
-                    placeholder="Value (e.g. Pytest)"
+                    placeholder="Value (e.g. Grades 1–6)"
                     className="w-1/2 px-2.5 py-1 rounded-lg bg-white/5 text-xs font-mono text-[var(--color-accent)] border border-white/10"
                   />
                   <button
@@ -3604,7 +3573,7 @@ function ExperienceModal({ isOpen, initialExperience, onClose, onSave }: Experie
       company: company.trim(),
       period: period.trim() || 'Present',
       location: location.trim(),
-      highlights: highlights.length > 0 ? highlights : ['Quality assurance operations.'],
+      highlights: highlights.length > 0 ? highlights : ['Teaching and student learning support.'],
     });
   };
 
@@ -3645,7 +3614,7 @@ function ExperienceModal({ isOpen, initialExperience, onClose, onSave }: Experie
                 type="text"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                placeholder="e.g. Jr. SQA Engineer"
+                placeholder="e.g. Assistant Teacher (English Version)"
                 required
                 className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-sm font-mono text-white focus:border-blue-500 focus:outline-none"
               />
@@ -3659,7 +3628,7 @@ function ExperienceModal({ isOpen, initialExperience, onClose, onSave }: Experie
                 type="text"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
-                placeholder="e.g. Altersense Ltd"
+                placeholder="e.g. New Blown An Int'l Standard School"
                 required
                 className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-sm font-mono text-white focus:border-blue-500 focus:outline-none"
               />
@@ -3703,7 +3672,7 @@ function ExperienceModal({ isOpen, initialExperience, onClose, onSave }: Experie
               value={highlightsText}
               onChange={(e) => setHighlightsText(e.target.value)}
               rows={5}
-              placeholder="Writing, reviewing, and executing test cases for ERP software...&#10;Performing API testing using Postman...&#10;Defect reporting & tracking via Jira..."
+              placeholder="Teaching English to Grades 1–6...&#10;Preparing interactive lesson plans...&#10;Supporting school events with photography and video..."
               className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-xs font-mono text-white focus:border-blue-500 focus:outline-none leading-relaxed"
             />
           </div>
@@ -3731,6 +3700,159 @@ function ExperienceModal({ isOpen, initialExperience, onClose, onSave }: Experie
 }
 
 // ============================================================================
+// REFERENCE MODAL COMPONENT
+// ============================================================================
+
+interface ReferenceModalProps {
+  isOpen: boolean;
+  initialReference: Reference | null;
+  onClose: () => void;
+  onSave: (referenceData: Omit<Reference, 'id'> & { id?: string }) => void;
+}
+
+function ReferenceModal({ isOpen, initialReference, onClose, onSave }: ReferenceModalProps) {
+  const [name, setName] = useState(initialReference?.name || '');
+  const [role, setRole] = useState(initialReference?.role || '');
+  const [company, setCompany] = useState(initialReference?.company || '');
+  const [email, setEmail] = useState(initialReference?.email || '');
+  const [phone, setPhone] = useState(initialReference?.phone || '');
+  const [quote, setQuote] = useState(initialReference?.quote || '');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !role.trim() || !company.trim() || !email.trim() || !phone.trim()) return;
+
+    onSave({
+      id: initialReference?.id,
+      name: name.trim(),
+      role: role.trim(),
+      company: company.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+      quote: quote.trim() || undefined,
+    });
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+      <div className="w-full max-w-2xl bg-[#12151C] border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl text-white space-y-6">
+        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <div>
+            <h3 className="font-display font-bold text-xl">
+              {initialReference ? 'Edit Professional Reference' : 'Add Professional Reference'}
+            </h3>
+            <p className="text-xs font-mono text-[#9CA3AF] mt-1">
+              Add an academic or professional contact for the CV.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-[#9CA3AF] hover:text-white cursor-pointer"
+            aria-label="Close reference form"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className="space-y-1.5 text-xs font-mono text-[#D1D5DB] font-semibold">
+              Reference Name *
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Academic Coordinator"
+                required
+                className="w-full mt-1 px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-sm text-white font-normal focus:border-[var(--color-accent)] focus:outline-none"
+              />
+            </label>
+            <label className="space-y-1.5 text-xs font-mono text-[#D1D5DB] font-semibold">
+              Role *
+              <input
+                type="text"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                placeholder="e.g. English Version In-Charge"
+                required
+                className="w-full mt-1 px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-sm text-white font-normal focus:border-[var(--color-accent)] focus:outline-none"
+              />
+            </label>
+          </div>
+
+          <label className="block space-y-1.5 text-xs font-mono text-[#D1D5DB] font-semibold">
+            School / Organization *
+            <input
+              type="text"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              placeholder="e.g. New Blown An Int'l Standard School"
+              required
+              className="w-full mt-1 px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-sm text-white font-normal focus:border-[var(--color-accent)] focus:outline-none"
+            />
+          </label>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className="space-y-1.5 text-xs font-mono text-[#D1D5DB] font-semibold">
+              Email *
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@school.edu"
+                required
+                className="w-full mt-1 px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-sm text-white font-normal focus:border-[var(--color-accent)] focus:outline-none"
+              />
+            </label>
+            <label className="space-y-1.5 text-xs font-mono text-[#D1D5DB] font-semibold">
+              Phone *
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+880 1XXXXXXXXX"
+                required
+                className="w-full mt-1 px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-sm text-white font-normal focus:border-[var(--color-accent)] focus:outline-none"
+              />
+            </label>
+          </div>
+
+          <label className="block space-y-1.5 text-xs font-mono text-[#D1D5DB] font-semibold">
+            Endorsement (Optional)
+            <textarea
+              value={quote}
+              onChange={(e) => setQuote(e.target.value)}
+              rows={3}
+              placeholder="Add a short professional endorsement..."
+              className="w-full mt-1 px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-sm text-white font-normal focus:border-[var(--color-accent)] focus:outline-none resize-y"
+            />
+          </label>
+
+          <div className="flex justify-end gap-3 border-t border-white/10 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-mono text-[#D1D5DB]"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2.5 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-xs font-mono font-bold"
+            >
+              {initialReference ? 'Update Reference' : 'Create Reference'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
 // BLOG MODAL COMPONENT
 // ============================================================================
 
@@ -3744,12 +3866,12 @@ interface BlogModalProps {
 function BlogModal({ isOpen, initialBlog, onClose, onSave }: BlogModalProps) {
   const [title, setTitle] = useState(initialBlog?.title || '');
   const [slug, setSlug] = useState(initialBlog?.slug || '');
-  const [category, setCategory] = useState<BlogPost['category']>(initialBlog?.category || 'Software Testing');
+  const [category, setCategory] = useState<BlogPost['category']>(initialBlog?.category || 'English Pedagogy');
   const [description, setDescription] = useState(initialBlog?.description || '');
   const [content, setContent] = useState(initialBlog?.content || '');
-  const [coverImage, setCoverImage] = useState(initialBlog?.coverImage || 'https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?auto=format&fit=crop&q=80&w=1200');
+  const [coverImage, setCoverImage] = useState(initialBlog?.coverImage || 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=1200');
   const [status, setStatus] = useState<'Published' | 'Draft'>(initialBlog?.status || 'Published');
-  const [tagsString, setTagsString] = useState(initialBlog?.tags.join(', ') || 'QA, Testing');
+  const [tagsString, setTagsString] = useState(initialBlog?.tags.join(', ') || 'English Pedagogy, Classroom Learning');
   const [readingTime, setReadingTime] = useState(initialBlog?.readingTime || '5 min read');
 
   // Auto-generate slug and reading time from content
@@ -3780,7 +3902,7 @@ function BlogModal({ isOpen, initialBlog, onClose, onSave }: BlogModalProps) {
       content: content.trim(),
       coverImage: coverImage.trim(),
       status,
-      tags: tags.length > 0 ? tags : ['Software Testing'],
+      tags: tags.length > 0 ? tags : ['English Pedagogy'],
       readingTime: readingTime || calculateReadingTime(content),
     });
   };
@@ -3797,10 +3919,10 @@ function BlogModal({ isOpen, initialBlog, onClose, onSave }: BlogModalProps) {
             </div>
             <div>
               <h3 className="font-display font-bold text-xl text-white">
-                {initialBlog ? 'Edit Technical Article' : 'Compose New Article'}
+                {initialBlog ? 'Edit Education Article' : 'Compose New Article'}
               </h3>
               <p className="text-xs font-mono text-[#9CA3AF]">
-                Publish SQA test automation tutorials, case studies, and engineering practices.
+                Share teaching strategies, classroom reflections, and educational media stories.
               </p>
             </div>
           </div>
@@ -3822,7 +3944,7 @@ function BlogModal({ isOpen, initialBlog, onClose, onSave }: BlogModalProps) {
                 type="text"
                 value={title}
                 onChange={(e) => handleTitleChange(e.target.value)}
-                placeholder="e.g. Building Resilient API Automation with Python & Playwright"
+                placeholder="e.g. Building Confident English Speakers Through Classroom Presentations"
                 required
                 className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-sm font-mono text-white focus:border-purple-500 focus:outline-none"
               />
@@ -3837,14 +3959,11 @@ function BlogModal({ isOpen, initialBlog, onClose, onSave }: BlogModalProps) {
                 onChange={(e) => setCategory(e.target.value as BlogPost['category'])}
                 className="w-full px-3 py-2.5 rounded-xl bg-[#1A1F2C] border border-white/15 text-sm font-mono text-white focus:border-purple-500 focus:outline-none"
               >
-                <option value="Software Testing">Software Testing</option>
-                <option value="Playwright">Playwright</option>
-                <option value="API Testing">API Testing</option>
-                <option value="ERPNext">ERPNext</option>
-                <option value="Automation">Automation</option>
-                <option value="QA Career">QA Career</option>
-                <option value="AI">AI</option>
-                <option value="Programming">Programming</option>
+                <option value="English Pedagogy">English Pedagogy</option>
+                <option value="Educational Media">Educational Media</option>
+                <option value="Lesson Design">Lesson Design</option>
+                <option value="Classroom Leadership">Classroom Leadership</option>
+                <option value="Academic Growth">Academic Growth</option>
               </select>
             </div>
           </div>
@@ -3858,7 +3977,7 @@ function BlogModal({ isOpen, initialBlog, onClose, onSave }: BlogModalProps) {
                 type="text"
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
-                placeholder="building-resilient-api-automation"
+                placeholder="classroom-presentation-learning"
                 className="w-full px-4 py-2 rounded-xl bg-white/[0.05] border border-white/15 text-xs font-mono text-white focus:border-purple-500 focus:outline-none"
               />
             </div>
@@ -3925,7 +4044,7 @@ function BlogModal({ isOpen, initialBlog, onClose, onSave }: BlogModalProps) {
               value={content}
               onChange={(e) => handleContentChange(e.target.value)}
               rows={10}
-              placeholder="# Introduction&#10;&#10;In modern test engineering, quality gates must be automated...&#10;&#10;## Key Architecture&#10;- Point 1&#10;- Point 2"
+              placeholder="# Introduction&#10;&#10;Share a teaching strategy, classroom reflection, or educational media story...&#10;&#10;## Key Takeaways&#10;- Learning objective&#10;- Classroom activity"
               required
               className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-xs font-mono text-white focus:border-purple-500 focus:outline-none leading-relaxed"
             />
@@ -3939,7 +4058,7 @@ function BlogModal({ isOpen, initialBlog, onClose, onSave }: BlogModalProps) {
               type="text"
               value={tagsString}
               onChange={(e) => setTagsString(e.target.value)}
-              placeholder="Playwright, API, Testing, Automation"
+              placeholder="English Pedagogy, Lesson Design, Student Confidence"
               className="w-full px-4 py-2 rounded-xl bg-white/[0.05] border border-white/15 text-xs font-mono text-white focus:border-purple-500 focus:outline-none"
             />
           </div>

@@ -1,11 +1,11 @@
 /**
  * -----------------------------------------
- * Project     : Sabbir Ahamed SQA Portfolio
+ * Project     : Tansom Akther Lima Educator Portfolio
  * Module      : Blog Section Component (Home Page)
  * Description : Showcases featured engineering blog posts on the main portfolio page.
  *               Includes article previews, tags, read times, and 1-click transition
  *               to full blog archive and management console.
- * Author      : Sabbir Ahamed
+ * Author      : Tansom Akther Lima
  * Last Updated: 2026-09-10
  * -----------------------------------------
  */

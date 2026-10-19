@@ -1,6 +1,6 @@
 /**
  * -----------------------------------------
- * Project     : Sabbir Ahamed SQA Portfolio
+ * Project     : Tansom Akther Lima Educator Portfolio
  * Module      : Portfolio Data Store & CRUD Manager
  * Description : Centralized state manager for Projects, Experience, and Skills.
  *               Synchronizes with localStorage and optional backend API persistence.
@@ -11,9 +11,10 @@
  * -----------------------------------------
  */
 
-import { Project, Experience, Skill, TestLog, Reference } from '../types';
+import { Project, Experience, Skill, Reference } from '../types';
 import { PROJECTS as DEFAULT_PROJECTS, WORK_EXPERIENCE as DEFAULT_EXPERIENCE, SKILL_CATEGORIES as DEFAULT_SKILLS, PERSONAL_INFO, PROFESSIONAL_REFERENCES as DEFAULT_REFERENCES } from '../data';
 import { getAdminToken } from './adminAuth';
+import { containsLegacyTestingContent } from './legacyContent';
 
 const STORAGE_KEY_PORTFOLIO = 'tansom_edu_portfolio_data_v3';
 export const PORTFOLIO_UPDATED_EVENT = 'tansom_portfolio_updated';
@@ -32,10 +33,6 @@ export interface ProfileData {
   gradeLevelsTaught: string;
   academicCgpa: string;
   studentEngagementRate: string;
-  testCasesCount?: string;
-  bugsReportedCount?: string;
-  automationScriptsCount?: string;
-  defectDetectionRate?: string;
 }
 
 export const DEFAULT_PROFILE: ProfileData = {
@@ -69,6 +66,37 @@ const CANDIDATE_STORAGE_KEYS = [
   'tansom_edu_portfolio_data_v1',
 ];
 
+const PROJECT_TYPES: Project['type'][] = ['Teaching', 'Media', 'Presentation', 'Curriculum'];
+
+function inferProjectType(project: Project): Project['type'] {
+  const content = [project.title, project.description, ...(project.tags || [])].join(' ').toLowerCase();
+  if (/\b(media|photography|photo|video|event|canva)\b/.test(content)) return 'Media';
+  if (/\b(presentation|seminar|climate|public speaking)\b/.test(content)) return 'Presentation';
+  if (/\b(curriculum|workbook|worksheet|grammar|phonics|lesson plan)\b/.test(content)) return 'Curriculum';
+  return 'Teaching';
+}
+
+function normalizeProject(project: Project): Project | null {
+  const tags = Array.isArray(project.tags) ? project.tags : [];
+  const content = [project.title, project.description, ...tags]
+    .filter((value): value is string => typeof value === 'string')
+    .join(' ');
+  if (containsLegacyTestingContent(content)) return null;
+
+  return {
+    ...project,
+    type: PROJECT_TYPES.includes(project.type) ? project.type : inferProjectType({ ...project, tags }),
+    tags,
+  };
+}
+
+function withReferenceIds(references: Reference[]): Reference[] {
+  return references.map((reference, index) => ({
+    ...reference,
+    id: reference.id || `ref-${index + 1}`,
+  }));
+}
+
 // Purge obsolete keys
 try {
   ['sabbir_portfolio_data_v2', 'sabbir_portfolio_data', 'sabbir_portfolio_data_v1', 'sabbir_portfolio_cms', 'tuhin_resume_data_v1'].forEach((k) => {
@@ -88,31 +116,54 @@ export function getStoredPortfolioData(): PortfolioData {
       if (raw) {
         const parsed: Partial<PortfolioData> = JSON.parse(raw);
         if (parsed && typeof parsed === 'object') {
+          const projects = Array.isArray(parsed.projects)
+            ? parsed.projects.map(normalizeProject).filter((project): project is Project => project !== null)
+            : [];
+          const experiences = Array.isArray(parsed.experiences)
+            ? parsed.experiences.filter(experience => !containsLegacyTestingContent([
+              experience.role,
+              experience.company,
+              ...experience.highlights,
+            ].join(' ')))
+            : [];
+          const skills = Array.isArray(parsed.skills)
+            ? parsed.skills
+              .map(category => ({
+                ...category,
+                items: category.items.filter(item => !containsLegacyTestingContent(item)),
+              }))
+              .filter(category => !containsLegacyTestingContent(category.category))
+            : [];
+          const references = Array.isArray(parsed.references)
+            ? withReferenceIds(parsed.references.filter(reference => !containsLegacyTestingContent([
+              reference.name,
+              reference.role,
+              reference.company,
+              reference.quote || '',
+            ].join(' '))))
+            : withReferenceIds([...DEFAULT_REFERENCES]);
+          const profile = { ...DEFAULT_PROFILE, ...parsed.profile };
+          (Object.keys(profile) as (keyof ProfileData)[]).forEach(field => {
+            if (containsLegacyTestingContent(profile[field])) {
+              profile[field] = DEFAULT_PROFILE[field];
+            }
+          });
+
           const loadedData: PortfolioData = {
-            projects: Array.isArray(parsed.projects) && parsed.projects.length > 0 
-              ? parsed.projects 
-              : [...DEFAULT_PROJECTS],
-            experiences: Array.isArray(parsed.experiences) && parsed.experiences.length > 0 
-              ? parsed.experiences 
-              : [...DEFAULT_EXPERIENCE],
-            skills: Array.isArray(parsed.skills) && parsed.skills.length > 0 
-              ? parsed.skills 
-              : [...DEFAULT_SKILLS],
-            references: Array.isArray(parsed.references) && parsed.references.length > 0
-              ? parsed.references
-              : [...DEFAULT_REFERENCES].map((ref, index) => ({ ...ref, id: ref.id || `ref-${index + 1}` })),
-            profile: parsed.profile 
-              ? { ...DEFAULT_PROFILE, ...parsed.profile } 
-              : { ...DEFAULT_PROFILE },
+            projects: projects.length > 0 ? projects : [...DEFAULT_PROJECTS],
+            experiences: experiences.length > 0 ? experiences : [...DEFAULT_EXPERIENCE],
+            skills: skills.length > 0 ? skills : [...DEFAULT_SKILLS],
+            references,
+            profile,
             lastModified: parsed.lastModified || new Date().toISOString(),
           };
 
-          // Ensure primary key is synchronized without deleting data
-          if (key !== STORAGE_KEY_PORTFOLIO) {
+          const serializedData = JSON.stringify(loadedData);
+          if (key !== STORAGE_KEY_PORTFOLIO || serializedData !== raw) {
             try {
-              localStorage.setItem(STORAGE_KEY_PORTFOLIO, JSON.stringify(loadedData));
-            } catch (e) {
-              // ignore
+              localStorage.setItem(STORAGE_KEY_PORTFOLIO, serializedData);
+            } catch (err) {
+              console.error('Error migrating portfolio data in localStorage:', err);
             }
           }
           return loadedData;
@@ -230,8 +281,6 @@ export function addStoredProject(newProject: Omit<Project, 'id'> & { id?: string
     ...newProject,
     id,
     metrics: newProject.metrics || [],
-    assertions: newProject.assertions || [],
-    logs: newProject.logs || [],
     tags: newProject.tags || [],
   };
 

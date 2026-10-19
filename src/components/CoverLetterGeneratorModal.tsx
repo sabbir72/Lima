@@ -18,7 +18,7 @@ interface CoverLetterGeneratorModalProps {
 }
 
 export type CoverLetterTone = 'professional' | 'formal' | 'enthusiastic';
-export type CoverLetterTemplate = 'modern-executive' | 'classic-corporate' | 'minimalist-tech';
+export type CoverLetterTemplate = 'modern-executive' | 'classic-corporate' | 'minimalist-professional';
 export type CoverLetterFontFamily = 'serif' | 'modern' | 'corporate';
 
 function normalizeUrl(url: string): string {
@@ -31,7 +31,7 @@ function normalizeUrl(url: string): string {
 }
 
 function renderTextWithLinks(text: string) {
-  const regex = /(SQA Portfolio \(Click Here\)|Portfolio \(Click Here\)|GitHub \(Click Here\)|LinkedIn \(Click Here\)|Click Here)/gi;
+  const regex = /(Portfolio \(Click Here\)|GitHub \(Click Here\)|LinkedIn \(Click Here\)|Click Here)/gi;
   const tokens = text.split(regex);
   return tokens.map((token, i) => {
     const lower = token.toLowerCase();
@@ -243,7 +243,7 @@ ${PERSONAL_INFO.title}`;
   const defaultLetterContent = useMemo(() => {
     return generateLetterText(
       companyName || 'Company Name',
-      jobTitle || 'Software QA Engineer',
+      jobTitle || 'Assistant Teacher',
       hiringManager || 'Hiring Manager',
       date,
       companyLocation,
@@ -254,72 +254,40 @@ ${PERSONAL_INFO.title}`;
 
   const activeLetterText = customContent || defaultLetterContent;
 
-  // Calculate ATS Job Description Match Analysis
+  // Compare the job description with Lima's education and media experience.
   const matchAnalysis = useMemo(() => {
     const jdText = (jobDescription + ' ' + jobTitle).toLowerCase();
-    
-    // Core SQA skills in portfolio
-    const portfolioSkills = [
-      { name: 'Manual Testing', category: 'Testing', found: true },
-      { name: 'Playwright (Python)', category: 'Automation', found: true },
-      { name: 'Postman & REST API', category: 'API', found: true },
-      { name: 'STLC / SDLC', category: 'Methodology', found: true },
-      { name: 'Jira Defect Tracking', category: 'Tools', found: true },
-      { name: 'SQL & Database Testing', category: 'Backend', found: true },
-      { name: 'Regression Testing', category: 'Testing', found: true },
-      { name: 'Pytest & POM Architecture', category: 'Automation', found: true },
-      { name: 'GitHub Actions CI/CD', category: 'DevOps', found: true },
-      { name: 'Newman CLI', category: 'API', found: true }
+
+    const missingSkillsList: string[] = [];
+    const skillKeywords: { label: string; keywords: string[] }[] = [
+      { label: 'English Language Instruction', keywords: ['english', 'language', 'grammar', 'reading'] },
+      { label: 'Lesson Planning & Curriculum', keywords: ['lesson', 'curriculum', 'planning', 'instruction'] },
+      { label: 'Classroom Leadership', keywords: ['classroom', 'class management', 'student engagement'] },
+      { label: 'Student Assessment & Mentorship', keywords: ['assessment', 'learner', 'student', 'mentorship'] },
+      { label: 'Presentation & Communication', keywords: ['presentation', 'communication', 'public speaking'] },
+      { label: 'Educational Media & Canva', keywords: ['media', 'canva', 'photography', 'video'] },
+      { label: 'English Version Subjects', keywords: ['science', 'bgs', 'english version'] },
+      { label: 'Digital Teaching Resources', keywords: ['powerpoint', 'digital', 'worksheet', 'visual aid'] },
     ];
 
-    // Check JD matches
-    let matchCount = 0;
-    const totalChecks = 8;
-
-    const matchedSkillsList: string[] = [];
-    const missingSkillsList: string[] = [];
-
-    const keySkillMap: { [key: string]: string } = {
-      'playwright': 'Playwright Automation',
-      'python': 'Python Test Scripts',
-      'api': 'REST API Testing (Postman)',
-      'manual': 'Manual Test Cases',
-      'jira': 'Jira Defect Tracking',
-      'sql': 'SQL Queries & Validation',
-      'pytest': 'Pytest Framework',
-      'ci/cd': 'GitHub Actions CI/CD',
-      'stlc': 'STLC & Agile Methodology',
-      'regression': 'Regression Testing'
-    };
-
-    Object.keys(keySkillMap).forEach(key => {
-      if (jdText.includes(key) || !jobDescription) {
-        matchedSkillsList.push(keySkillMap[key]);
-        matchCount++;
-      }
-    });
-
-    // Detect if JD mentions tools not explicit in portfolio
-    if (jdText.includes('cypress')) missingSkillsList.push('Cypress (Mention Playwright adaptability)');
-    if (jdText.includes('selenium')) missingSkillsList.push('Selenium (Highlight Python test automation background)');
-    if (jdText.includes('jmeter') || jdText.includes('performance')) missingSkillsList.push('JMeter / Performance Testing');
-    if (jdText.includes('appium') || jdText.includes('mobile')) missingSkillsList.push('Appium Mobile Testing');
-
-    const score = Math.min(96, Math.max(78, Math.round(75 + (matchedSkillsList.length * 2.5))));
+    const matchedSkillsList = skillKeywords
+      .filter((skill) => skill.keywords.some((keyword) => jdText.includes(keyword)))
+      .map((skill) => skill.label);
+    const score = jobDescription.trim()
+      ? Math.min(96, Math.max(78, Math.round(75 + (matchedSkillsList.length * 2.5))))
+      : 85;
 
     const suggestions = [
-      `Emphasize your ${detectedRoleCategory.toUpperCase()} testing experience in the first paragraph.`,
-      `Highlight your 150+ written test cases and zero critical post-release bugs metric.`,
-      `Mention your GitHub repo links for Playwright Python & Postman collections.`
+      `Emphasize your ${detectedRoleCategory.toUpperCase()} teaching or educational media experience in the first paragraph.`,
+      'Highlight your Grades 1–6 teaching experience and student engagement outcomes.',
+      'Include relevant lesson plans, presentations, and educational media work.'
     ];
-
-    if (missingSkillsList.length > 0) {
-      suggestions.push(`Address ${missingSkillsList[0].split(' ')[0]} by expressing fast adaptability in framework concepts.`);
-    }
 
     return {
       score,
-      matchedSkills: matchedSkillsList.length > 0 ? matchedSkillsList : ['Manual Testing', 'REST API Validation', 'Playwright Python', 'Jira', 'SQL'],
+      matchedSkills: matchedSkillsList.length > 0
+        ? matchedSkillsList
+        : ['English Instruction', 'Lesson Planning', 'Classroom Leadership', 'Educational Media'],
       missingSkills: missingSkillsList,
       suggestions
     };
@@ -335,7 +303,7 @@ ${PERSONAL_INFO.title}`;
     setTimeout(() => {
       const generated = generateLetterText(
         companyName || 'Target Company',
-        jobTitle || 'Software QA Engineer',
+        jobTitle || 'Assistant Teacher',
         hiringManager || 'Hiring Manager',
         date,
         companyLocation,
@@ -523,7 +491,7 @@ ${PERSONAL_INFO.title}`;
     const newEntry: SavedCoverLetter = {
       id: Date.now().toString(),
       companyName: companyName || 'Company',
-      jobTitle: jobTitle || 'SQA Role',
+      jobTitle: jobTitle || 'Teaching Role',
       hiringManager,
       date,
       content: activeLetterText,
@@ -554,7 +522,7 @@ ${PERSONAL_INFO.title}`;
                 Admin Authentication Required
               </h3>
               <p className="text-xs font-mono text-[#9CA3AF] leading-relaxed">
-                Only the verified portfolio administrator (Sabbir Ahamed) has permission to generate, customize, or download tailored Cover Letters.
+                Only the verified portfolio administrator has permission to generate, customize, or download tailored cover letters.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
@@ -602,13 +570,13 @@ ${PERSONAL_INFO.title}`;
           </div>
           <div>
             <h2 className="font-display font-bold text-base sm:text-lg text-white flex items-center gap-2">
-              <span>AI Cover Letter Generator & ATS Matcher</span>
+              <span>Cover Letter & CV Alignment Studio</span>
               <span className="text-[10px] font-mono font-bold uppercase bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/30 px-2 py-0.5 rounded-full">
                 Auto-Synced
               </span>
             </h2>
             <p className="text-xs text-[#9CA3AF] hidden sm:block">
-              Generates tailored, recruiter-friendly SQA cover letters & calculates Job Description match score.
+              Creates tailored education and media cover letters and checks alignment with a job description.
             </p>
           </div>
         </div>
@@ -711,7 +679,7 @@ ${PERSONAL_INFO.title}`;
                   type="text"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
-                  placeholder="e.g. Google, Square Health, Meta"
+                  placeholder="e.g. New Blown School, Merit School"
                   className="w-full px-3 py-2 rounded-xl bg-[#12151C] border border-white/10 text-white text-xs focus:border-[var(--color-accent)] focus:outline-none"
                 />
               </div>
@@ -725,7 +693,7 @@ ${PERSONAL_INFO.title}`;
                   type="text"
                   value={jobTitle}
                   onChange={(e) => setJobTitle(e.target.value)}
-                  placeholder="e.g. Software QA Engineer, Automation Lead"
+                  placeholder="e.g. English Teacher, Assistant Teacher, Media Specialist"
                   className="w-full px-3 py-2 rounded-xl bg-[#12151C] border border-white/10 text-white text-xs focus:border-[var(--color-accent)] focus:outline-none"
                 />
               </div>
@@ -826,7 +794,7 @@ ${PERSONAL_INFO.title}`;
                 {[
                   { id: 'modern-executive', label: 'Modern' },
                   { id: 'classic-corporate', label: 'Classic' },
-                  { id: 'minimalist-tech', label: 'Minimal' }
+                  { id: 'minimalist-professional', label: 'Minimal' }
                 ].map((tmpl) => (
                   <button
                     key={tmpl.id}
@@ -1034,7 +1002,7 @@ ${PERSONAL_INFO.title}`;
                     )}
 
                     {/* Minimalist Tech Header */}
-                    {template === 'minimalist-tech' && (
+                    {template === 'minimalist-professional' && (
                       <div className="border-l-4 border-gray-900 pl-4 py-1 mb-4 space-y-0.5" style={{ borderColor: '#111827' }}>
                         <h1 className="text-xl font-black text-gray-900 uppercase" style={{ color: '#111827' }}>
                           {PERSONAL_INFO.name}
@@ -1101,7 +1069,7 @@ ${PERSONAL_INFO.title}`;
             </div>
           )}
 
-          {/* TAB 3: ATS JOB MATCH SCORE & ANALYSIS */}
+          {/* TAB 3: ROLE ALIGNMENT SCORE & ANALYSIS */}
           {activeTab === 'match-score' && (
             <div className="w-full max-w-2xl bg-[#12151C] p-6 sm:p-8 rounded-3xl border border-white/10 space-y-6 text-white animate-fadeIn">
               
@@ -1110,7 +1078,7 @@ ${PERSONAL_INFO.title}`;
                 <div>
                   <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-mono font-bold uppercase mb-2">
                     <Award className="w-3.5 h-3.5" />
-                    <span>AI ATS Match Analysis</span>
+                    <span>CV & Role Alignment</span>
                   </div>
                   <h3 className="font-display font-extrabold text-2xl text-white">
                     Job Alignment for {companyName || 'Target Company'}

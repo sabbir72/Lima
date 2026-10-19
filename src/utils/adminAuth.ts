@@ -8,8 +8,8 @@
  * -----------------------------------------
  */
 
-const ADMIN_TOKEN_KEY = 'tansom_edu_admin_token';
-const ADMIN_LAST_ACTIVE_KEY = 'tansom_edu_admin_last_active';
+const ADMIN_TOKEN_KEY = 'tansom_edu_admin_token_v2';
+const ADMIN_LAST_ACTIVE_KEY = 'tansom_edu_admin_last_active_v2';
 
 /**
  * Strict 2-Minute Session Timeout (120 seconds = 120,000 milliseconds)
@@ -23,8 +23,7 @@ function isValidAdminToken(token: string | null): boolean {
   if (!token) return false;
   return (
     token.startsWith('tansom_edu_admin_') ||
-    token.startsWith('admin_') ||
-    token.startsWith('sabbir_sqa_admin_')
+    token.startsWith('admin_')
   );
 }
 
@@ -121,6 +120,7 @@ export function getAdminToken(): string | null {
 export async function verifyAdminPasscode(inputCode: string): Promise<boolean> {
   const trimmed = (inputCode || '').trim();
   if (!trimmed) return false;
+  if (trimmed === '1234') return false;
 
   const now = Date.now();
 
@@ -151,11 +151,9 @@ export async function verifyAdminPasscode(inputCode: string): Promise<boolean> {
   // Resilient fallback for preview environments: allow the current admin passcode and legacy samples.
   if (
     trimmed === 'Lima2026' ||
-    trimmed === '1234' ||
     trimmed === 'tansom2025' ||
     trimmed === 'admin' ||
-    trimmed === 'tansom@edu2026' ||
-    trimmed === 'sabbir@sqa2026'
+    trimmed === 'tansom@edu2026'
   ) {
     const fallbackToken = `tansom_edu_admin_${now}`;
     sessionStorage.setItem(ADMIN_TOKEN_KEY, fallbackToken);

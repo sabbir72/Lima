@@ -5,11 +5,12 @@ import {
   RotateCcw, ShieldCheck, Mail, Phone, MapPin, Globe, Target,
   Type, ExternalLink, User, Lock
 } from 'lucide-react';
-import { PERSONAL_INFO, EDUCATION_HISTORY, BUG_REPORTS, PROFESSIONAL_REFERENCES } from '../data';
+import { PERSONAL_INFO, EDUCATION_HISTORY, PROFESSIONAL_REFERENCES } from '../data';
 import { getStoredProjects, getStoredExperiences, getStoredSkills, PORTFOLIO_UPDATED_EVENT } from '../utils/portfolioStore';
 import { isAdminAuthenticated } from '../utils/adminAuth';
 import AdminPasscodeModal from './AdminPasscodeModal';
 import html2pdf from 'html2pdf.js'; 
+import type { Project } from '../types';
 
 // Safe URL normalizer for links embedded inside text
 export const normalizeUrl = (url?: string): string => {
@@ -91,19 +92,19 @@ export default function ResumeBuilderModal({ isOpen, onClose, onOpenCoverLetter 
     careerObjective: PERSONAL_INFO.objective || DEFAULT_CAREER_OBJECTIVE
   });
 
-  // Filename format strictly matching: Name_ex-year_SQA_DIU
+  // Keep exported CV filenames clear and candidate-specific.
   const getCvBaseFileName = () => {
-    const cleanName = (customInfo.name || 'Sabbir_Ahamed').trim().replace(/\s+/g, '_');
+    const cleanName = (customInfo.name || 'Tansom_Akther_Lima').trim().replace(/\s+/g, '_');
     const rawExp = (customInfo.experienceYears || '2').trim();
     const numMatch = rawExp.match(/\d+(\.\d+)?/);
     const expNum = numMatch ? numMatch[0] : rawExp.replace(/[^a-zA-Z0-9]/g, '');
     const expPart = expNum ? `${expNum}year` : '2year';
-    return `${cleanName}_ex-${expPart}_SQA_DIU`;
+    return `${cleanName}_CV_${expPart}`;
   };
 
   // Cover Letter Customizer State
-  const [targetCompany, setTargetCompany] = useState('Tech Solutions Inc.');
-  const [targetJobTitle, setTargetJobTitle] = useState('Software QA Engineer');
+  const [targetCompany, setTargetCompany] = useState('New Blown An Int’l Standard School');
+  const [targetJobTitle, setTargetJobTitle] = useState('English Teacher');
   const [copiedText, setCopiedText] = useState(false);
   const [copiedCover, setCopiedCover] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
@@ -138,7 +139,7 @@ export default function ResumeBuilderModal({ isOpen, onClose, onOpenCoverLetter 
 
   const selectAllProjects = () => setSelectedProjectIds(PROJECTS.map(p => p.id));
   const deselectAllProjects = () => setSelectedProjectIds([]);
-  const filterByProjectType = (type: 'Automation' | 'API' | 'Manual' | 'Performance') => {
+  const filterByProjectType = (type: Project['type']) => {
     setSelectedProjectIds(PROJECTS.filter(p => p.type === type).map(p => p.id));
   };
 
@@ -156,16 +157,16 @@ export default function ResumeBuilderModal({ isOpen, onClose, onOpenCoverLetter 
       tip: 'Ensure email, phone number, and location are present.'
     });
 
-    // Check 2: Core SQA Keywords
+    // Check 2: Education and teaching skills
     const allSkillsText = SKILL_CATEGORIES.flatMap(c => c.items).join(' ').toLowerCase();
-    const coreKeywords = ['playwright', 'selenium', 'postman', 'api', 'stlc', 'jira', 'manual', 'automation', 'sql', 'python', 'jmeter'];
+    const coreKeywords = ['english', 'lesson planning', 'classroom', 'student', 'teaching', 'presentation', 'canva', 'curriculum', 'communication', 'mentorship'];
     const matchedKeywords = coreKeywords.filter(k => allSkillsText.includes(k) || activeCareerObjective.toLowerCase().includes(k));
     const keywordScore = Math.min(25, Math.round((matchedKeywords.length / coreKeywords.length) * 25));
     score += keywordScore;
     checks.push({
-      label: `Core SQA Keywords (${matchedKeywords.length}/${coreKeywords.length} matched)`,
+      label: `Teaching & Education Skills (${matchedKeywords.length}/${coreKeywords.length} matched)`,
       passed: keywordScore >= 20,
-      tip: 'Includes essential SQA tools: Playwright, Selenium, Postman, Jira, STLC, SQL.'
+      tip: 'Highlight relevant teaching subjects, lesson planning, classroom leadership, and learning methods.'
     });
 
     // Check 3: Quantifiable Metrics & Numbers
@@ -175,16 +176,16 @@ export default function ResumeBuilderModal({ isOpen, onClose, onOpenCoverLetter 
     checks.push({
       label: 'Quantifiable Metrics & Stats',
       passed: hasMetrics,
-      tip: 'Use numbers like "150+ Test Cases", "2+ Years Exp", "0% Error Rate".'
+      tip: 'Include accurate grade levels, years of experience, academic results, and measurable learner outcomes.'
     });
 
     // Check 4: Featured Projects Included
     const projectScore = selectedProjects.length >= 2 ? 20 : selectedProjects.length * 10;
     score += projectScore;
     checks.push({
-      label: `Featured SQA Projects Selected (${selectedProjects.length} included)`,
+      label: `Teaching & Media Projects Selected (${selectedProjects.length} included)`,
       passed: selectedProjects.length >= 2,
-      tip: 'Include at least 2-3 relevant projects to prove hands-on test execution.'
+      tip: 'Include relevant classroom, curriculum, and educational media work.'
     });
 
     // Check 5: Formatting & Structure
@@ -485,7 +486,7 @@ export default function ResumeBuilderModal({ isOpen, onClose, onOpenCoverLetter 
       xmlns='http://www.w3.org/TR/REC-html40'>
 <head>
   <meta charset='utf-8'>
-  <title>${customInfo.name} - SQA Engineer Resume</title>
+  <title>${customInfo.name} - Educator CV</title>
   <!--[if gte mso 9]>
   <xml>
     <w:WordDocument>
@@ -611,7 +612,7 @@ export default function ResumeBuilderModal({ isOpen, onClose, onOpenCoverLetter 
   <p>${activeCareerObjective}</p>
 
   <!-- Core Skills -->
-  <div class="section-title">CORE TECHNICAL SKILLS</div>
+  <div class="section-title">TEACHING & PROFESSIONAL SKILLS</div>
   <table class="data-table" border="0" cellpadding="0" cellspacing="0">
     ${SKILL_CATEGORIES.map(c => `
       <tr>
@@ -637,13 +638,13 @@ export default function ResumeBuilderModal({ isOpen, onClose, onOpenCoverLetter 
 
   <!-- Key Projects -->
   ${selectedProjects.length > 0 ? `
-    <div class="section-title">KEY SQA PROJECTS</div>
+    <div class="section-title">SELECTED EDUCATION & MEDIA PROJECTS</div>
     ${selectedProjects.map(proj => `
       <table class="data-table" border="0" cellpadding="0" cellspacing="0">
         <tr>
           <td class="left-col" style="width: 75%;">
             <b>${proj.title}</b>
-            ${proj.link ? ` [ <a href="${normalizeUrl(proj.link)}">GitHub Repo</a> ]` : ''}
+            ${proj.link ? ` [ <a href="${normalizeUrl(proj.link)}">Project Resource</a> ]` : ''}
           </td>
           <td class="right-col" style="width: 25%; color: #555555;">[ ${proj.type.toUpperCase()} ]</td>
         </tr>
@@ -751,8 +752,8 @@ export default function ResumeBuilderModal({ isOpen, onClose, onOpenCoverLetter 
 
   // Generated Cover Letter
   const generatedCoverLetter = useMemo(() => {
-    return `Sabbir Ahamed
-Tongi East, Gazipur 1710, Bangladesh
+    return `${customInfo.name}
+${customInfo.location}
 ${customInfo.email} | ${customInfo.phone}
 ${customInfo.linkedin}
 
@@ -765,21 +766,16 @@ Subject: Application for ${targetJobTitle} Position
 
 Dear Hiring Manager,
 
-I am writing to express my strong enthusiasm for the ${targetJobTitle} position at ${targetCompany}. With over 2 years of hands-on experience in Software Quality Assurance at Altersense Ltd, I have developed deep expertise in Manual Testing, REST API Verification, and Web UI Automation using Playwright (Python) and Selenium.
+I am writing to express my interest in the ${targetJobTitle} position at ${targetCompany}. I am an enthusiastic educator with experience teaching English, Science, and Bangladesh & Global Studies to English Version learners in Grades 1–6.
 
-In my current role as Jr. SQA Engineer, I actively participate in Agile sprints, write comprehensive test cases, perform thorough regression and exploratory testing across complex ERP commercial modules, and report actionable defects in Jira. Additionally, I lead API test automation using Postman & Newman, verifying endpoint payloads and data integrity in SQL databases.
+In my current role as ${customInfo.title}, I prepare structured lesson plans, lead engaging classroom activities, support students’ academic development, and create educational media for school programs. My academic background includes a BA (Hons) in English and recognition for academic excellence.
 
-Key strengths I bring to ${targetCompany}:
-• Proven track record in designing 150+ test cases and catching critical edge-case defects before production deployment.
-• Hands-on automation skills in Playwright (Python), Pytest, Selenium, and CI/CD integration with GitHub Actions.
-• Rigorous execution of STLC & SDLC principles with strong focus on user experience and software reliability.
-
-I am eager to contribute my QA methodologies and automation enthusiasm to ${targetCompany}'s engineering goals. Thank you for considering my application. I welcome the opportunity to discuss how my qualifications align with your team's objectives.
+I would welcome the opportunity to contribute my teaching experience, classroom leadership, communication skills, and creative approach to learning at ${targetCompany}. Thank you for considering my application. I look forward to discussing how my experience can support your students and school community.
 
 Sincerely,
 
-Sabbir Ahamed
-Software Quality Assurance Engineer`;
+${customInfo.name}
+${customInfo.title}`;
   }, [customInfo, targetCompany, targetJobTitle]);
 
   const handleCopyCoverLetter = () => {
@@ -811,7 +807,7 @@ Software Quality Assurance Engineer`;
                 Admin Authentication Required
               </h3>
               <p className="text-xs font-mono text-[#9CA3AF] leading-relaxed">
-                Only the verified portfolio administrator (Sabbir Ahamed) has permission to create, customize, or download ATS Resumes.
+                Only the verified portfolio administrator can create, customize, or download CVs.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
@@ -858,7 +854,7 @@ Software Quality Assurance Engineer`;
           </div>
           <div>
             <h2 className="font-display font-bold text-base sm:text-lg text-white flex items-center gap-2">
-              <span>Dynamic SQA Resume Builder</span>
+              <span>Educator CV Builder</span>
               <span className="text-[10px] font-mono font-normal uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
                 Live Data Synced
               </span>
@@ -965,7 +961,7 @@ Software Quality Assurance Engineer`;
                     { id: 'modern-pro', name: 'Modern Professional', desc: 'Clean header bar, skill pill badges, refined typography.' },
                     { id: 'minimal', name: 'Minimalist Clean', desc: 'Sleek, spacious black-and-white print design.' },
                     { id: 'executive', name: 'Executive Leadership', desc: 'Bold top header, highlighted metrics & stats banner.' },
-                    { id: 'portfolio-style', name: 'Portfolio Technical Style', desc: 'Emphasizes automation suite links and test metrics.' },
+                    { id: 'portfolio-style', name: 'Education & Media Portfolio', desc: 'Highlights teaching, curriculum, and educational media projects.' },
                   ].map((t) => (
                     <button
                       key={t.id}
@@ -1017,7 +1013,7 @@ Software Quality Assurance Engineer`;
                   ))}
                 </div>
                 <p className="text-[10.5px] text-[#D1D5DB] font-mono leading-relaxed">
-                  ✓ Clickable links (GitHub, LinkedIn, Portfolio, Repositories) are embedded cleanly into text for ATS parsers & printable PDF.
+                  ✓ Professional profile and project resource links are included in the printable CV.
                 </p>
               </div>
 
@@ -1037,7 +1033,7 @@ Software Quality Assurance Engineer`;
                     <span className="text-emerald-400 font-bold">{getCvBaseFileName()}.pdf</span>
                   </div>
                   <div className="text-[10px] text-[#D1D5DB] font-mono bg-black/30 p-1.5 rounded border border-white/5">
-                    Format: <span className="text-amber-300 font-semibold">Name_ex-year_SQA_DIU.pdf</span>
+                    Format: <span className="text-amber-300 font-semibold">Name_CV_experience.pdf</span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 pt-1">
@@ -1048,7 +1044,7 @@ Software Quality Assurance Engineer`;
                         value={customInfo.name}
                         onChange={(e) => setCustomInfo(prev => ({ ...prev, name: e.target.value }))}
                         className="w-full p-2 bg-[#0B0D12] border border-white/10 rounded text-xs text-white focus:border-[var(--color-accent)] outline-none font-mono"
-                        placeholder="Sabbir Ahamed"
+                        placeholder="Tansom Akther Lima"
                       />
                     </div>
                     <div>
@@ -1065,7 +1061,7 @@ Software Quality Assurance Engineer`;
                 </div>
               </div>
 
-              {/* SQA Role Target Preset */}
+              {/* Educator role target preset */}
               <div className="space-y-2 pt-2 border-t border-white/10">
                 <label className="text-xs font-mono text-[var(--color-accent)] uppercase font-bold tracking-wider flex items-center gap-1.5">
                   <Briefcase className="w-3.5 h-3.5" />
@@ -1234,22 +1230,22 @@ Software Quality Assurance Engineer`;
                   Clear All
                 </button>
                 <button
-                  onClick={() => filterByProjectType('Automation')}
+                  onClick={() => filterByProjectType('Teaching')}
                   className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-mono cursor-pointer"
                 >
-                  Automation Only
+                  Teaching Only
                 </button>
                 <button
-                  onClick={() => filterByProjectType('API')}
+                  onClick={() => filterByProjectType('Media')}
                   className="px-2 py-1 rounded bg-blue-500/20 text-blue-300 text-[10px] font-mono cursor-pointer"
                 >
-                  API Only
+                  Media Only
                 </button>
                 <button
-                  onClick={() => filterByProjectType('Manual')}
+                  onClick={() => filterByProjectType('Presentation')}
                   className="px-2 py-1 rounded bg-amber-500/20 text-amber-300 text-[10px] font-mono cursor-pointer"
                 >
-                  Manual Only
+                  Presentation Only
                 </button>
               </div>
 
@@ -1276,8 +1272,8 @@ Software Quality Assurance Engineer`;
                         <div className="flex items-center justify-between gap-1">
                           <p className="text-xs font-bold truncate text-white">{proj.title}</p>
                           <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded border ${
-                            proj.type === 'Automation' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                            proj.type === 'API' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                            proj.type === 'Teaching' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                            proj.type === 'Media' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
                             'bg-amber-500/10 text-amber-400 border-amber-500/20'
                           }`}>
                             {proj.type}
@@ -1345,7 +1341,7 @@ Software Quality Assurance Engineer`;
                     value={targetCompany}
                     onChange={(e) => setTargetCompany(e.target.value)}
                     className="w-full mt-1 p-2 bg-[#12151C] border border-white/10 rounded-lg text-xs text-white focus:border-[var(--color-accent)] outline-none font-mono"
-                    placeholder="e.g. Brain Station 23 / Enosis"
+                    placeholder="e.g. New Blown An Int'l Standard School / Merit School"
                   />
                 </div>
                 <div>
@@ -1355,7 +1351,7 @@ Software Quality Assurance Engineer`;
                     value={targetJobTitle}
                     onChange={(e) => setTargetJobTitle(e.target.value)}
                     className="w-full mt-1 p-2 bg-[#12151C] border border-white/10 rounded-lg text-xs text-white focus:border-[var(--color-accent)] outline-none font-mono"
-                    placeholder="e.g. SQA Automation Engineer"
+                    placeholder="e.g. English Teacher"
                   />
                 </div>
                 <button
@@ -1427,9 +1423,9 @@ Software Quality Assurance Engineer`;
                   <p className="text-[11px] text-black leading-relaxed text-justify">{activeCareerObjective}</p>
                 </div>
 
-                {/* Technical Skills */}
+                {/* Teaching, digital, and professional skills */}
                 <div className="mb-4">
-                  <h2 className="text-xs font-bold uppercase border-b border-black pb-1 mb-2 text-black tracking-wider">Technical Skills & Core Competencies</h2>
+                  <h2 className="text-xs font-bold uppercase border-b border-black pb-1 mb-2 text-black tracking-wider">Teaching, Digital & Professional Skills</h2>
                   <div className="grid grid-cols-1 gap-1.5 text-[11px]">
                     {SKILL_CATEGORIES.map((cat) => (
                       <div key={cat.category} className="flex">
@@ -1458,10 +1454,10 @@ Software Quality Assurance Engineer`;
                   ))}
                 </div>
 
-                {/* Key SQA Projects (Filtered!) */}
+                {/* Selected education and media projects */}
                 {selectedProjects.length > 0 && (
                   <div className="mb-4 space-y-2">
-                    <h2 className="text-xs font-bold uppercase border-b border-black pb-1 mb-2 text-black tracking-wider">Featured SQA Automation & Testing Projects</h2>
+                    <h2 className="text-xs font-bold uppercase border-b border-black pb-1 mb-2 text-black tracking-wider">Featured Teaching & Media Projects</h2>
                     {selectedProjects.map((proj) => (
                       <div key={proj.id} className="space-y-0.5 text-[11px] mb-2">
                         <div className="flex justify-between items-baseline font-bold text-black">
@@ -1474,7 +1470,7 @@ Software Quality Assurance Engineer`;
                               className="text-[#0a66c2] hover:underline font-bold text-[10.5px] inline-flex items-center gap-0.5"
                               style={{ color: '#0a66c2', textDecoration: 'underline' }}
                             >
-                              GitHub Repo (Click Here) ↗
+                              Project Resource (Click Here) ↗
                             </a>
                           )}
                         </div>
@@ -1548,7 +1544,7 @@ Software Quality Assurance Engineer`;
 
                 {/* Skills Grid */}
                 <div>
-                  <h2 className="text-xs font-extrabold uppercase border-l-4 pl-2 mb-1.5" style={{ color: '#0f172a', borderColor: '#f59e0b' }}>Core Technical Toolkit</h2>
+                  <h2 className="text-xs font-extrabold uppercase border-l-4 pl-2 mb-1.5" style={{ color: '#0f172a', borderColor: '#f59e0b' }}>Teaching & Digital Toolkit</h2>
                   <div className="grid grid-cols-2 gap-2 text-[11px]">
                     {SKILL_CATEGORIES.map((cat) => (
                       <div key={cat.category} className="p-2 rounded border" style={{ backgroundColor: '#f8fafc', borderColor: '#cbd5e1' }}>
@@ -1582,7 +1578,7 @@ Software Quality Assurance Engineer`;
                 {/* Selected Projects */}
                 {selectedProjects.length > 0 && (
                   <div>
-                    <h2 className="text-xs font-extrabold uppercase border-l-4 pl-2 mb-1.5" style={{ color: '#0f172a', borderColor: '#f59e0b' }}>Selected SQA Projects</h2>
+                    <h2 className="text-xs font-extrabold uppercase border-l-4 pl-2 mb-1.5" style={{ color: '#0f172a', borderColor: '#f59e0b' }}>Selected Education & Media Projects</h2>
                     <div className="space-y-2">
                       {selectedProjects.map((p) => (
                         <div key={p.id} className="p-2 rounded border space-y-0.5 text-[10.5px]" style={{ backgroundColor: '#f8fafc', borderColor: '#cbd5e1' }}>
@@ -1598,7 +1594,7 @@ Software Quality Assurance Engineer`;
                                   className="hover:underline font-bold text-[10px]"
                                   style={{ color: '#0a66c2', textDecoration: 'underline' }}
                                 >
-                                  GitHub Repo (Click Here) ↗
+                                  Project Resource (Click Here) ↗
                                 </a>
                               )}
                             </div>
@@ -1738,9 +1734,9 @@ Software Quality Assurance Engineer`;
                 {/* Key Metrics Banner */}
                 <div className="grid grid-cols-4 gap-2 bg-gray-100 p-2 rounded text-center text-[10px] border border-gray-300">
                   <div><span className="font-bold block text-black text-xs">{customInfo.experienceYears || '2'}+ Yrs</span> <span className="font-semibold text-black">Experience</span></div>
-                  <div><span className="font-bold block text-black text-xs">150+</span> <span className="font-semibold text-black">Test Cases</span></div>
-                  <div><span className="font-bold block text-black text-xs">100+</span> <span className="font-semibold text-black">Bugs Logged</span></div>
-                  <div><span className="font-bold block text-black text-xs">0%</span> <span className="font-semibold text-black">Error Rate</span></div>
+                  <div><span className="font-bold block text-black text-xs">1–6</span> <span className="font-semibold text-black">Grades Taught</span></div>
+                  <div><span className="font-bold block text-black text-xs">3.83 / 4.00</span> <span className="font-semibold text-black">BA CGPA</span></div>
+                  <div><span className="font-bold block text-black text-xs">Dean’s Award</span> <span className="font-semibold text-black">Academic Honor</span></div>
                 </div>
 
                 {/* Career Objective */}
@@ -1750,7 +1746,7 @@ Software Quality Assurance Engineer`;
                 </div>
 
                 <div>
-                  <h2 className="text-xs font-bold uppercase tracking-wider text-black border-b border-black pb-0.5 mb-1.5">Leadership & Technical Capabilities</h2>
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-black border-b border-black pb-0.5 mb-1.5">Leadership & Educational Competencies</h2>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10.5px]">
                     {SKILL_CATEGORIES.map((c) => (
                       <div key={c.category}>
@@ -1793,7 +1789,7 @@ Software Quality Assurance Engineer`;
                               className="text-[#0a66c2] hover:underline font-bold text-[10px]"
                               style={{ color: '#0a66c2', textDecoration: 'underline' }}
                             >
-                              GitHub Repo (Click Here) ↗
+                              Project Resource (Click Here) ↗
                             </a>
                           )}
                         </div>
@@ -1847,7 +1843,7 @@ Software Quality Assurance Engineer`;
                 </div>
 
                 <div>
-                  <h2 className="text-xs font-extrabold uppercase text-orange-600 tracking-wider mb-1.5">SQA Toolkit & Capabilities</h2>
+                  <h2 className="text-xs font-extrabold uppercase text-orange-600 tracking-wider mb-1.5">Teaching Skills & Capabilities</h2>
                   <div className="flex flex-wrap gap-1 text-[10px] font-mono">
                     {SKILL_CATEGORIES.flatMap(c => c.items).map((skill, i) => (
                       <span key={i} className="bg-gray-100 border border-gray-400 px-2 py-0.5 rounded text-black font-semibold">
@@ -1858,7 +1854,7 @@ Software Quality Assurance Engineer`;
                 </div>
 
                 <div>
-                  <h2 className="text-xs font-extrabold uppercase text-orange-600 tracking-wider mb-2">Experience & STLC Workflow</h2>
+                  <h2 className="text-xs font-extrabold uppercase text-orange-600 tracking-wider mb-2">Teaching Experience</h2>
                   {WORK_EXPERIENCE.map((exp) => (
                     <div key={exp.id} className="mb-2 text-[11px]">
                       <div className="flex justify-between font-bold text-black">
@@ -1876,7 +1872,7 @@ Software Quality Assurance Engineer`;
 
                 {selectedProjects.length > 0 && (
                   <div>
-                    <h2 className="text-xs font-extrabold uppercase text-orange-600 tracking-wider mb-1.5">Verified Automation & QA Repositories</h2>
+                    <h2 className="text-xs font-extrabold uppercase text-orange-600 tracking-wider mb-1.5">Selected Teaching & Media Projects</h2>
                     <div className="space-y-1.5">
                       {selectedProjects.map((p) => (
                         <div key={p.id} className="p-2 border border-gray-300 rounded text-[10.5px]">
@@ -1892,7 +1888,7 @@ Software Quality Assurance Engineer`;
                                   className="text-[#0a66c2] hover:underline font-bold text-[10px]"
                                   style={{ color: '#0a66c2', textDecoration: 'underline' }}
                                 >
-                                  GitHub Repo (Click Here) ↗
+                                  Project Resource (Click Here) ↗
                                 </a>
                               )}
                             </div>

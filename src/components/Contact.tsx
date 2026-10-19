@@ -297,7 +297,7 @@ export default function Contact({ onOpenResumeBuilder }: ContactProps) {
                       value={formData.subject}
                       onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                       className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/10 text-white text-sm focus:border-[var(--color-accent)] focus:bg-white/[0.06] focus:outline-none transition-all placeholder:text-[#9CA3AF]/50 font-sans"
-                      placeholder="Subject (e.g. SQA Engineer Position Opportunity)"
+                      placeholder="Subject (e.g. English Teacher Position Opportunity)"
                     />
                     {errors.subject && <p className="text-[11px] font-mono text-rose-400 pt-0.5">{errors.subject}</p>}
                   </div>

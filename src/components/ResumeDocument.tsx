@@ -178,9 +178,9 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, theme }) =
           </div>
         </section>
 
-        {/* Technical Skills & Soft Skills */}
+        {/* Professional Skills */}
         <section className="page-break-avoid">
-          <h2 className={style.sectionHeading}>Technical Skills & Core Competencies</h2>
+          <h2 className={style.sectionHeading}>Teaching, Digital & Professional Skills</h2>
           <div className="space-y-2 text-xs">
             {coreCompetencies.map((cat) => (
               <div key={cat.name} className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2">

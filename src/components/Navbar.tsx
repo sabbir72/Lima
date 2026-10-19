@@ -87,7 +87,7 @@ export default function Navbar({
             </div>
             <div>
               <span className="font-display font-extrabold text-lg tracking-tight text-white whitespace-nowrap">
-                Tansom<span className="text-[var(--color-accent)]">.Edu</span>
+                T.A<span className="text-[var(--color-accent)]"> Lima</span>
               </span>
             </div>
           </a>

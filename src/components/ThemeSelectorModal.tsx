@@ -1,10 +1,10 @@
 /**
  * -----------------------------------------
- * Project     : Sabbir Ahamed SQA Portfolio
+ * Project     : Tansom Akther Lima Educator Portfolio
  * Module      : Modern Color View / Theme Selector Modal
  * Description : Allows visitors & portfolio owner to customize the color view
  *               across the full system with live preview and persistent storage.
- * Author      : Sabbir Ahamed
+ * Author      : Tansom Akther Lima
  * Last Updated: 2026-10-14
  * -----------------------------------------
  */

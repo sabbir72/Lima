@@ -131,7 +131,7 @@ export default function Projects() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="p-2 rounded-xl bg-white/[0.04] hover:bg-[var(--color-accent)]/20 border border-white/10 hover:border-[var(--color-accent)]/40 text-[#9CA3AF] hover:text-[var(--color-accent)] transition-all"
-                      title="View Project Link / Repository"
+                      title="View Project Resource"
                     >
                       <ExternalLink className="w-4 h-4" />
                     </a>
@@ -163,11 +163,11 @@ export default function Projects() {
 
               {/* Bottom Section: Tools Used Key & Modal Inspector */}
               <div className="space-y-4 pt-4 border-t border-white/10">
-                {/* Key Tools Used */}
+                {/* Relevant Skills and Resources */}
                 <div className="space-y-1.5">
                   <p className="text-[10px] font-mono uppercase tracking-widest text-[#9CA3AF] flex items-center justify-between">
-                    <span>Key Tools Used</span>
-                    <span className="text-[9px] text-[var(--color-accent)]">{project.tags.length} Tools</span>
+                    <span>Skills & Resources</span>
+                    <span className="text-[9px] text-[var(--color-accent)]">{project.tags.length} Items</span>
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {project.tags.map((tool) => (
@@ -187,7 +187,7 @@ export default function Projects() {
                     onClick={() => setActiveModalProject(project)}
                     className="text-xs font-mono text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] font-bold flex items-center gap-1 group/btn"
                   >
-                    <span>Inspect Test Results</span>
+                    <span>View Project Details</span>
                     <span className="group-hover/btn:translate-x-1 transition-transform">→</span>
                   </button>
 
@@ -199,7 +199,7 @@ export default function Projects() {
                       className="text-xs font-mono text-[#9CA3AF] hover:text-white flex items-center gap-1 transition-colors"
                     >
                       <Github className="w-3.5 h-3.5" />
-                      <span>Repo</span>
+                      <span>Resource</span>
                     </a>
                   )}
                 </div>
@@ -242,7 +242,7 @@ export default function Projects() {
 
               {/* Tools Used */}
               <div className="space-y-2">
-                <h5 className="text-xs font-mono font-bold text-[#9CA3AF] uppercase tracking-wider">Testing Stack & Tools</h5>
+                <h5 className="text-xs font-mono font-bold text-[#9CA3AF] uppercase tracking-wider">Skills & Educational Resources</h5>
                 <div className="flex flex-wrap gap-2">
                   {activeModalProject.tags.map((t) => (
                     <span key={t} className="px-3 py-1 rounded-full text-xs font-mono bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/30 font-semibold">
@@ -261,7 +261,7 @@ export default function Projects() {
                     rel="noopener noreferrer"
                     className="px-5 py-2.5 rounded-full bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-xs font-mono font-bold flex items-center space-x-2 transition-all shadow-lg shadow-[var(--color-accent)]/20"
                   >
-                    <span>View Repository & Specs</span>
+                    <span>View Project Resource</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
                 ) : <div />}
