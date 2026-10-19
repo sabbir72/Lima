@@ -13,6 +13,7 @@ import { BlogPost, BLOG_POSTS } from '../data/blogs';
 import { isAdminAuthenticated } from './adminAuth';
 import { PERSONAL_INFO } from '../data';
 import { containsLegacyTestingContent } from './legacyContent';
+import { getStoredProfile } from './portfolioStore';
 
 const STORAGE_KEY = 'sabbir_portfolio_blogs_v1';
 export const BLOGS_UPDATED_EVENT = 'sabbir_blogs_updated';
@@ -21,6 +22,7 @@ export const BLOGS_UPDATED_EVENT = 'sabbir_blogs_updated';
  * Normalizes author avatar to always reflect the main profile avatar from PERSONAL_INFO
  */
 function normalizeAuthorAvatar(post: BlogPost): BlogPost {
+  const profileTitle = getStoredProfile().title;
   const currentAvatar = post.author?.avatar || '';
   const isPortfolioAuthor = !post.author?.name ||
     post.author.name === PERSONAL_INFO.name ||
@@ -33,7 +35,7 @@ function normalizeAuthorAvatar(post: BlogPost): BlogPost {
       author: {
         ...post.author,
         name: isPortfolioAuthor ? PERSONAL_INFO.name : post.author?.name || PERSONAL_INFO.name,
-        role: isPortfolioAuthor ? PERSONAL_INFO.title : post.author?.role || PERSONAL_INFO.title,
+        role: isPortfolioAuthor ? profileTitle : post.author?.role || profileTitle,
         avatar: PERSONAL_INFO.avatar || '/sabbir_avatar.jpeg',
         bio: isPortfolioAuthor ? PERSONAL_INFO.objective : post.author?.bio || PERSONAL_INFO.objective,
       },
@@ -196,7 +198,7 @@ export function upsertBlogPost(postData: Partial<BlogPost> & { title: string; co
         status: postData.status || existing.status || 'Published',
         author: {
           name: postData.author?.name || existing.author?.name || 'Sabbir Ahamed',
-          role: postData.author?.role || existing.author?.role || PERSONAL_INFO.title,
+          role: postData.author?.role || existing.author?.role || getStoredProfile().title,
           avatar: postData.author?.avatar || existing.author?.avatar || '/sabbir_avatar.jpeg',
           bio: postData.author?.bio || existing.author?.bio || PERSONAL_INFO.objective,
         },
@@ -224,7 +226,7 @@ export function upsertBlogPost(postData: Partial<BlogPost> & { title: string; co
     status: postData.status || 'Published',
     author: {
       name: postData.author?.name || PERSONAL_INFO.name,
-      role: postData.author?.role || PERSONAL_INFO.title,
+      role: postData.author?.role || getStoredProfile().title,
       avatar: postData.author?.avatar || PERSONAL_INFO.avatar,
       bio: postData.author?.bio || PERSONAL_INFO.objective,
     },

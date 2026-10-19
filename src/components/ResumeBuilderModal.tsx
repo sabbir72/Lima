@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { PERSONAL_INFO, EDUCATION_HISTORY, PROFESSIONAL_REFERENCES } from '../data';
 import { getStoredProjects, getStoredExperiences, getStoredSkills, PORTFOLIO_UPDATED_EVENT } from '../utils/portfolioStore';
+import { usePortfolioProfile } from '../utils/usePortfolioProfile';
 import { isAdminAuthenticated } from '../utils/adminAuth';
 import AdminPasscodeModal from './AdminPasscodeModal';
 import html2pdf from 'html2pdf.js'; 
@@ -46,6 +47,7 @@ export const ROLE_CAREER_OBJECTIVES: Record<TargetRoleType, string> = {
 };
 
 export default function ResumeBuilderModal({ isOpen, onClose, onOpenCoverLetter }: ResumeBuilderModalProps) {
+  const profile = usePortfolioProfile();
   const [isAdmin, setIsAdmin] = useState<boolean>(() => isAdminAuthenticated());
   const [isPasscodeModalOpen, setIsPasscodeModalOpen] = useState<boolean>(false);
 
@@ -82,7 +84,7 @@ export default function ResumeBuilderModal({ isOpen, onClose, onOpenCoverLetter 
   // Customizable Fields (Synced with portfolio data by default)
   const [customInfo, setCustomInfo] = useState({
     name: PERSONAL_INFO.name,
-    title: PERSONAL_INFO.title,
+    title: profile.title,
     email: PERSONAL_INFO.email,
     phone: PERSONAL_INFO.phone,
     location: PERSONAL_INFO.location,
@@ -92,14 +94,18 @@ export default function ResumeBuilderModal({ isOpen, onClose, onOpenCoverLetter 
     careerObjective: PERSONAL_INFO.objective || DEFAULT_CAREER_OBJECTIVE
   });
 
-  // Keep exported CV filenames clear and candidate-specific.
+  useEffect(() => {
+    setCustomInfo(prev => ({ ...prev, title: profile.title }));
+  }, [profile.title]);
+
+  // Keep exported filenames clear and candidate-specific.
   const getCvBaseFileName = () => {
     const cleanName = (customInfo.name || 'Tansom_Akther_Lima').trim().replace(/\s+/g, '_');
     const rawExp = (customInfo.experienceYears || '2').trim();
     const numMatch = rawExp.match(/\d+(\.\d+)?/);
     const expNum = numMatch ? numMatch[0] : rawExp.replace(/[^a-zA-Z0-9]/g, '');
     const expPart = expNum ? `${expNum}year` : '2year';
-    return `${cleanName}_CV_${expPart}`;
+    return `${cleanName}_UU_${expPart}`;
   };
 
   // Cover Letter Customizer State
@@ -1033,7 +1039,7 @@ ${customInfo.title}`;
                     <span className="text-emerald-400 font-bold">{getCvBaseFileName()}.pdf</span>
                   </div>
                   <div className="text-[10px] text-[#D1D5DB] font-mono bg-black/30 p-1.5 rounded border border-white/5">
-                    Format: <span className="text-amber-300 font-semibold">Name_CV_experience.pdf</span>
+                    Format: <span className="text-amber-300 font-semibold">Name_UU_experience.pdf</span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 pt-1">

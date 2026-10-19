@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { BlogPost as BlogPostType } from '../data/blogs';
 import { getStoredBlogPosts, BLOGS_UPDATED_EVENT } from '../utils/blogStore';
+import { PORTFOLIO_UPDATED_EVENT } from '../utils/portfolioStore';
 import { isAdminAuthenticated } from '../utils/adminAuth';
 import { navigateTo } from '../utils/router';
 import { PERSONAL_INFO } from '../data';
@@ -73,9 +74,11 @@ export default function BlogPost({ slug, onBackToBlog, onSelectPost, onOpenConta
       setIsAdmin(isAdminAuthenticated());
     };
     window.addEventListener(BLOGS_UPDATED_EVENT, refreshPosts);
+    window.addEventListener(PORTFOLIO_UPDATED_EVENT, refreshPosts);
     window.addEventListener('admin_auth_changed', syncAdmin);
     return () => {
       window.removeEventListener(BLOGS_UPDATED_EVENT, refreshPosts);
+      window.removeEventListener(PORTFOLIO_UPDATED_EVENT, refreshPosts);
       window.removeEventListener('admin_auth_changed', syncAdmin);
     };
   }, []);

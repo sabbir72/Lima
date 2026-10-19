@@ -2467,6 +2467,9 @@ ${profile.title || PERSONAL_INFO.title}`;
                     <Briefcase className="w-3.5 h-3.5 text-cyan-400" />
                     Professional Title *
                   </label>
+                  <p className="text-[10px] text-[#9CA3AF]">
+                    Used across the portfolio, CV, cover letters, and blog author profile.
+                  </p>
                   <input
                     type="text"
                     value={profile.title}

@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { BlogPost, BLOG_CATEGORIES } from '../data/blogs';
 import { getStoredBlogPosts, BLOGS_UPDATED_EVENT } from '../utils/blogStore';
+import { PORTFOLIO_UPDATED_EVENT } from '../utils/portfolioStore';
 import { PERSONAL_INFO } from '../data';
 
 const getAuthorAvatar = (author?: { name?: string; avatar?: string }) => {
@@ -52,8 +53,10 @@ export default function BlogList({ onSelectPost }: BlogListProps) {
     };
 
     window.addEventListener(BLOGS_UPDATED_EVENT, refreshPosts);
+    window.addEventListener(PORTFOLIO_UPDATED_EVENT, refreshPosts);
     return () => {
       window.removeEventListener(BLOGS_UPDATED_EVENT, refreshPosts);
+      window.removeEventListener(PORTFOLIO_UPDATED_EVENT, refreshPosts);
     };
   }, []);
 

@@ -4,12 +4,14 @@ import {
   FileText, ArrowRight, Copy, Check, ExternalLink, Sparkles
 } from 'lucide-react';
 import { PERSONAL_INFO } from '../data';
+import { usePortfolioProfile } from '../utils/usePortfolioProfile';
 
 interface ContactProps {
   onOpenResumeBuilder?: () => void;
 }
 
 export default function Contact({ onOpenResumeBuilder }: ContactProps) {
+  const profile = usePortfolioProfile();
   const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
   const [status, setStatus] = useState<'idle' | 'sending' | 'success'>('idle');
   const [errors, setErrors] = useState<{ name?: string; email?: string; subject?: string; message?: string }>({});
@@ -121,7 +123,7 @@ export default function Contact({ onOpenResumeBuilder }: ContactProps) {
                   {PERSONAL_INFO.name}
                 </h3>
                 <p className="text-xs font-mono font-semibold text-[var(--color-accent)] uppercase tracking-wider mt-1">
-                  {PERSONAL_INFO.title}
+                  {profile.title}
                 </p>
                 <p className="mt-3 text-xs sm:text-sm text-[#9CA3AF] font-light leading-relaxed">
                   Dedicated educator with strong academic honors (BA Hons in English, CGPA: 3.83, Dean’s Award). Proven classroom teaching experience across Grades 1–6 English Version, student presentation coaching, and campus digital media production.

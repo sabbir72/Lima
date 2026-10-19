@@ -41,6 +41,7 @@ import { BlogPost, BLOG_CATEGORIES } from '../data/blogs';
 import { upsertBlogPost, generateSlug, calculateReadingTime } from '../utils/blogStore';
 import { isAdminAuthenticated } from '../utils/adminAuth';
 import { PERSONAL_INFO } from '../data';
+import { usePortfolioProfile } from '../utils/usePortfolioProfile';
 import ReactMarkdown from 'react-markdown';
 
 interface CreateBlogModalProps {
@@ -61,6 +62,7 @@ const PRESET_COVER_IMAGES = [
 ];
 
 export default function CreateBlogModal({ isOpen, onClose, postToEdit, onSaved }: CreateBlogModalProps) {
+  const profile = usePortfolioProfile();
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
@@ -76,7 +78,7 @@ export default function CreateBlogModal({ isOpen, onClose, postToEdit, onSaved }
 
   // Author details
   const [authorName, setAuthorName] = useState(PERSONAL_INFO.name);
-  const [authorRole, setAuthorRole] = useState(PERSONAL_INFO.title);
+  const [authorRole, setAuthorRole] = useState(profile.title);
   const [authorAvatar, setAuthorAvatar] = useState(PERSONAL_INFO.avatar);
   const [authorBio, setAuthorBio] = useState(PERSONAL_INFO.objective);
 
@@ -107,7 +109,7 @@ export default function CreateBlogModal({ isOpen, onClose, postToEdit, onSaved }
         setReadingTime(postToEdit.readingTime);
         setTagsInput(postToEdit.tags ? postToEdit.tags.join(', ') : '');
         setAuthorName(postToEdit.author?.name || PERSONAL_INFO.name);
-        setAuthorRole(postToEdit.author?.role || PERSONAL_INFO.title);
+        setAuthorRole(postToEdit.author?.role || profile.title);
         setAuthorAvatar(
           postToEdit.author?.name === PERSONAL_INFO.name || !postToEdit.author?.avatar || postToEdit.author?.avatar.includes('sabbir_avatar')
             ? (PERSONAL_INFO.avatar || '/sabbir_avatar.jpeg')
@@ -134,7 +136,7 @@ export default function CreateBlogModal({ isOpen, onClose, postToEdit, onSaved }
         setReadingTime('');
         setTagsInput('English Pedagogy, Classroom Learning, Lesson Planning');
         setAuthorName(PERSONAL_INFO.name);
-        setAuthorRole(PERSONAL_INFO.title);
+        setAuthorRole(profile.title);
         setAuthorAvatar(PERSONAL_INFO.avatar);
         setAuthorBio(PERSONAL_INFO.objective);
       }
@@ -209,7 +211,7 @@ export default function CreateBlogModal({ isOpen, onClose, postToEdit, onSaved }
         tags: parsedTags.length > 0 ? parsedTags : ['English Pedagogy'],
         author: {
           name: authorName.trim() || PERSONAL_INFO.name,
-          role: authorRole.trim() || PERSONAL_INFO.title,
+          role: authorRole.trim() || profile.title,
           avatar: authorAvatar.trim() || PERSONAL_INFO.avatar,
           bio: authorBio.trim() || PERSONAL_INFO.objective,
         },

@@ -19,10 +19,12 @@ import BlogPost from './components/BlogPost';
 import { getCurrentRoute, navigateTo, navigateToHomeSection, AppRoute } from './utils/router';
 import { isAdminAuthenticated, logoutAdmin, verifyOwnerWithServer } from './utils/adminAuth';
 import { initializePortfolioStoreFromServer } from './utils/portfolioStore';
+import { usePortfolioProfile } from './utils/usePortfolioProfile';
 import { ShieldCheck } from 'lucide-react';
 import { PERSONAL_INFO } from './data';
 
 export default function App() {
+  const profile = usePortfolioProfile();
   const [route, setRoute] = useState<AppRoute>(() => getCurrentRoute());
   const [dark, setDark] = useState<boolean>(true);
   const [isResumeModalOpen, setIsResumeModalOpen] = useState<boolean>(false);
@@ -217,7 +219,7 @@ export default function App() {
                   T.A<span className="text-[var(--color-accent)]"> Lima</span>
                 </span>
                 <span className="text-xs text-[#9CA3AF] font-mono">
-                  {PERSONAL_INFO.title}
+                  {profile.title}
                 </span>
               </div>
             </div>

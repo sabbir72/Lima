@@ -6,6 +6,7 @@ import {
   ChevronRight, Bookmark, Trash2, Award, ArrowRight, Type, ExternalLink, Lock
 } from 'lucide-react';
 import { PERSONAL_INFO, SKILL_CATEGORIES, WORK_EXPERIENCE, PROJECTS, EDUCATION_HISTORY } from '../data';
+import { usePortfolioProfile } from '../utils/usePortfolioProfile';
 import { isAdminAuthenticated } from '../utils/adminAuth';
 import AdminPasscodeModal from './AdminPasscodeModal';
 import html2pdf from 'html2pdf.js';
@@ -113,6 +114,7 @@ export default function CoverLetterGeneratorModal({
   initialCompany = '',
   initialJobTitle = '' 
 }: CoverLetterGeneratorModalProps) {
+  const profile = usePortfolioProfile();
   // Form State (Only required / optional user inputs)
   const [companyName, setCompanyName] = useState(initialCompany || "An Int'l Standard School");
   const [jobTitle, setJobTitle] = useState(initialJobTitle || 'Assistant Teacher (E.V) / English Teacher');
@@ -236,7 +238,7 @@ ${closing}
 Sincerely,
 
 ${PERSONAL_INFO.name}
-${PERSONAL_INFO.title}`;
+${profile.title}`;
   };
 
   // Compute Auto-Generated Letter
@@ -250,7 +252,7 @@ ${PERSONAL_INFO.title}`;
       tone,
       detectedRoleCategory
     );
-  }, [companyName, jobTitle, hiringManager, date, companyLocation, tone, detectedRoleCategory]);
+  }, [companyName, jobTitle, hiringManager, date, companyLocation, tone, detectedRoleCategory, profile.title]);
 
   const activeLetterText = customContent || defaultLetterContent;
 
@@ -659,7 +661,7 @@ ${PERSONAL_INFO.title}`;
               <span className="text-[10px] font-mono font-bold text-emerald-400 uppercase tracking-wider block">
                 ✓ Auto-Loaded Portfolio Profile
               </span>
-              <p className="text-xs font-bold text-white">{PERSONAL_INFO.name} • {PERSONAL_INFO.title}</p>
+              <p className="text-xs font-bold text-white">{PERSONAL_INFO.name} • {profile.title}</p>
               <p className="text-[11px] text-[#9CA3AF] font-mono">{PERSONAL_INFO.email} | {PERSONAL_INFO.phone}</p>
             </div>
 
@@ -956,7 +958,7 @@ ${PERSONAL_INFO.title}`;
                             {PERSONAL_INFO.name}
                           </h1>
                           <p className="text-xs font-bold text-orange-600 font-mono uppercase tracking-wider mt-0.5" style={{ color: '#ea580c' }}>
-                            {PERSONAL_INFO.title}
+                            {profile.title}
                           </p>
                         </div>
                         <div className="text-right text-[11px] text-gray-600 font-mono space-y-0.5" style={{ color: '#4b5563' }}>
@@ -985,7 +987,7 @@ ${PERSONAL_INFO.title}`;
                           {PERSONAL_INFO.name}
                         </h1>
                         <p className="text-xs text-gray-600 font-mono" style={{ color: '#4b5563' }}>
-                          {PERSONAL_INFO.title} • {PERSONAL_INFO.location}
+                          {profile.title} • {PERSONAL_INFO.location}
                         </p>
                         <p className="text-xs text-gray-700 font-mono flex items-center justify-center gap-2 flex-wrap" style={{ color: '#374151' }}>
                           <a href={`mailto:${PERSONAL_INFO.email}`} className="hover:underline">{PERSONAL_INFO.email}</a>
@@ -1008,7 +1010,7 @@ ${PERSONAL_INFO.title}`;
                           {PERSONAL_INFO.name}
                         </h1>
                         <div className="text-xs font-mono text-gray-600 flex items-center gap-2 flex-wrap pt-0.5" style={{ color: '#4b5563' }}>
-                          <span>{PERSONAL_INFO.title}</span>
+                          <span>{profile.title}</span>
                           <span>|</span>
                           <a href={`mailto:${PERSONAL_INFO.email}`} className="hover:underline text-gray-800">{PERSONAL_INFO.email}</a>
                           <span>|</span>
@@ -1051,7 +1053,7 @@ ${PERSONAL_INFO.title}`;
                         {PERSONAL_INFO.name}
                       </div>
                       <p className="text-xs text-gray-600 font-mono" style={{ color: '#4b5563' }}>
-                        {PERSONAL_INFO.title}
+                        {profile.title}
                       </p>
                     </div>
 
