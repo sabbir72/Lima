@@ -2,40 +2,54 @@
  * -----------------------------------------
  * Project     : Tansom Akther Lima Educator Portfolio
  * Module      : Blog List Main Page (Reader Index)
- * Description : Clean, visitor-facing Blog Index view with Hero header, category filters,
- *               instant search, sorting, and responsive education article cards.
- *               Administrative creation, editing, and locking are strictly housed
- *               inside the Portfolio Admin Management System.
+ * Description : Clean Blog Index view with direct New Post composer access,
+ *               optional field resilience, category filters, and search.
  * Author      : Tansom Akther Lima
- * Last Updated: 2026-10-14
  * -----------------------------------------
  */
 
 import { useState, useMemo, useEffect } from 'react';
-import { 
-  Search, 
-  Sparkles, 
-  Clock, 
-  Calendar, 
-  ArrowRight, 
-  BookOpen, 
+import {
+  Search,
+  Sparkles,
+  Clock,
+  Calendar,
+  ArrowRight,
+  BookOpen,
   X,
   Filter,
   CheckCircle2,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Plus,
 } from 'lucide-react';
 import { BlogPost, BLOG_CATEGORIES } from '../data/blogs';
 import { getStoredBlogPosts, BLOGS_UPDATED_EVENT } from '../utils/blogStore';
 import { PORTFOLIO_UPDATED_EVENT } from '../utils/portfolioStore';
+import { isSystemActionLocked, LOCKS_UPDATED_EVENT } from '../utils/lockStore';
 import { PERSONAL_INFO } from '../data';
 import { usePortfolioProfile } from '../utils/usePortfolioProfile';
+import CreateBlogModal from './CreateBlogModal';
+import AdminPasscodeModal from './AdminPasscodeModal';
+
+const getPostPreviewImage = (post: BlogPost): string => {
+  if (post.coverImage) return post.coverImage;
+  if (post.inlineImages) {
+    const firstInline = Object.values(post.inlineImages)[0];
+    if (firstInline) return firstInline;
+  }
+  return '';
+};
 
 const getAuthorAvatar = (author?: { name?: string; avatar?: string }, fallbackAvatar?: string) => {
   const defaultAvatar = fallbackAvatar || PERSONAL_INFO.avatar || '/images/lima.jpeg';
-  if (!author || !author.avatar || author.avatar.includes('sabbir_avatar') || author.name === PERSONAL_INFO.name) {
+  const raw = (author?.avatar || '').trim();
+  if (!raw || raw.includes('sabbir_avatar') || raw.includes('./assets')) {
     return defaultAvatar;
   }
-  return author.avatar;
+  if (raw !== '/images/lima.jpeg' && raw !== PERSONAL_INFO.avatar) {
+    return raw;
+  }
+  return defaultAvatar;
 };
 
 interface BlogListProps {
@@ -48,8 +62,9 @@ export default function BlogList({ onSelectPost }: BlogListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'title'>('newest');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isPasscodeModalOpen, setIsPasscodeModalOpen] = useState(false);
 
-  // Subscribe to blog store updates
   useEffect(() => {
     const refreshPosts = () => {
       setPosts(getStoredBlogPosts());
@@ -57,62 +72,65 @@ export default function BlogList({ onSelectPost }: BlogListProps) {
 
     window.addEventListener(BLOGS_UPDATED_EVENT, refreshPosts);
     window.addEventListener(PORTFOLIO_UPDATED_EVENT, refreshPosts);
+    window.addEventListener(LOCKS_UPDATED_EVENT, refreshPosts);
     return () => {
       window.removeEventListener(BLOGS_UPDATED_EVENT, refreshPosts);
       window.removeEventListener(PORTFOLIO_UPDATED_EVENT, refreshPosts);
+      window.removeEventListener(LOCKS_UPDATED_EVENT, refreshPosts);
     };
   }, []);
 
-  // Set page document title
   useEffect(() => {
     document.title = 'Teaching & Media Journal | Tansom Akther Lima';
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   }, []);
 
-  // Public visitors only see published posts
+  const handleOpenNewPost = () => {
+    if (!isSystemActionLocked()) {
+      setIsCreateModalOpen(true);
+    } else {
+      setIsPasscodeModalOpen(true);
+    }
+  };
+
   const publishedPosts = useMemo(() => {
     return posts.filter((p) => p.status !== 'Draft');
   }, [posts]);
 
-  // Filter & Sort blog posts dynamically
   const filteredPosts = useMemo(() => {
     const list = publishedPosts.filter((post) => {
-      // Category Filter
       const matchesCategory =
-        selectedCategory === 'All' || post.category === selectedCategory;
+        selectedCategory === 'All' || (post.category || '') === selectedCategory;
 
-      // Search Filter
       const query = searchQuery.toLowerCase().trim();
       const matchesSearch =
         !query ||
-        post.title.toLowerCase().includes(query) ||
-        post.description.toLowerCase().includes(query) ||
-        post.category.toLowerCase().includes(query) ||
+        (post.title || '').toLowerCase().includes(query) ||
+        (post.description || '').toLowerCase().includes(query) ||
+        (post.content || '').toLowerCase().includes(query) ||
+        (post.category || '').toLowerCase().includes(query) ||
         (post.tags && post.tags.some((tag) => tag.toLowerCase().includes(query))) ||
-        (post.author && post.author.name.toLowerCase().includes(query));
+        (post.author?.name && post.author.name.toLowerCase().includes(query));
 
       return matchesCategory && matchesSearch;
     });
 
-    // Sorting logic
     return list.sort((a, b) => {
       if (sortBy === 'newest') {
-        return new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime();
+        return (new Date(b.publishDate || 0).getTime() || 0) - (new Date(a.publishDate || 0).getTime() || 0);
       } else if (sortBy === 'oldest') {
-        return new Date(a.publishDate).getTime() - new Date(b.publishDate).getTime();
+        return (new Date(a.publishDate || 0).getTime() || 0) - (new Date(b.publishDate || 0).getTime() || 0);
       } else if (sortBy === 'title') {
-        return a.title.localeCompare(b.title);
+        return (a.title || '').localeCompare(b.title || '');
       }
       return 0;
     });
   }, [publishedPosts, searchQuery, selectedCategory, sortBy]);
 
-  // Featured article banner (find published featured post or fallback)
   const featuredArticle = useMemo(() => {
     return publishedPosts.find((p) => p.featured) || publishedPosts[0];
   }, [publishedPosts]);
 
-  // Display grid posts (excludes featured banner post if on All category with no search)
   const displayGridPosts = useMemo(() => {
     if (selectedCategory === 'All' && !searchQuery && featuredArticle) {
       return filteredPosts.filter((p) => p.id !== featuredArticle.id);
@@ -121,6 +139,7 @@ export default function BlogList({ onSelectPost }: BlogListProps) {
   }, [filteredPosts, selectedCategory, searchQuery, featuredArticle]);
 
   const totalPublishedCount = publishedPosts.length;
+  const featuredPreviewImg = featuredArticle ? getPostPreviewImage(featuredArticle) : '';
 
   return (
     <div className="pt-24 pb-20 min-h-screen bg-[var(--color-dark-card,#141E2A)] text-[#F3F4F6] relative overflow-hidden">
@@ -129,7 +148,6 @@ export default function BlogList({ onSelectPost }: BlogListProps) {
       <div className="absolute top-96 right-10 w-80 h-80 bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-10">
-        
         {/* ==================== HERO SECTION & TOP SUMMARY ==================== */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/10 pb-8">
           <div className="space-y-3 max-w-2xl">
@@ -147,21 +165,29 @@ export default function BlogList({ onSelectPost }: BlogListProps) {
             </p>
           </div>
 
-          {/* Published Articles Metric Badge */}
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Published Articles Metric & Direct New Post Button */}
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
             <div className="flex items-center space-x-2 px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-[#D1D5DB] shadow-sm">
               <BookOpen className="w-4 h-4 text-[var(--color-accent)]" />
-              <span><strong>{totalPublishedCount}</strong> Education Articles</span>
+              <span>
+                <strong>{totalPublishedCount}</strong> Posts
+              </span>
             </div>
+
+            <button
+              type="button"
+              onClick={handleOpenNewPost}
+              className="min-h-[44px] shimmer inline-flex items-center space-x-2 px-5 py-2.5 rounded-full bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-black font-mono text-xs font-bold shadow-lg shadow-[var(--color-accent)]/25 transition-all hover:scale-[1.02] cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>New Blog / Photo Post</span>
+            </button>
           </div>
         </div>
 
         {/* ==================== SEARCH & CATEGORY CONTROLS ==================== */}
-        <div className="space-y-6 bg-[#12151C]/90 backdrop-blur-md p-6 rounded-3xl border border-white/10 shadow-2xl">
-          
-          {/* Row 1: Instant Search & Sort Options */}
+        <div className="space-y-6 bg-[#12151C]/90 backdrop-blur-md p-5 sm:p-6 rounded-3xl border border-white/10 shadow-2xl">
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-            {/* Search Input */}
             <div className="relative w-full sm:flex-1">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#9CA3AF]">
                 <Search className="w-4 h-4" />
@@ -171,7 +197,7 @@ export default function BlogList({ onSelectPost }: BlogListProps) {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search articles by title, teaching topic, classroom practice, or tags..."
-                className="w-full pl-10 pr-10 py-3 rounded-full bg-white/[0.05] border border-white/15 text-xs text-white placeholder:text-white/40 focus:border-[var(--color-accent)] focus:bg-white/[0.08] focus:outline-none transition-all font-mono"
+                className="w-full min-h-[44px] pl-10 pr-10 py-2.5 rounded-full bg-white/[0.05] border border-white/15 text-base sm:text-xs text-white placeholder:text-white/40 focus:border-[var(--color-accent)] focus:bg-white/[0.08] focus:outline-none transition-all font-mono"
               />
               {searchQuery && (
                 <button
@@ -184,9 +210,8 @@ export default function BlogList({ onSelectPost }: BlogListProps) {
               )}
             </div>
 
-            {/* Sort Dropdown */}
             <div className="flex items-center space-x-3 w-full sm:w-auto shrink-0">
-              <div className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-[#D1D5DB]">
+              <div className="flex items-center space-x-1.5 px-3.5 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-[#D1D5DB]">
                 <SlidersHorizontal className="w-3.5 h-3.5 text-[var(--color-accent)]" />
                 <span>Sort:</span>
                 <select
@@ -194,15 +219,20 @@ export default function BlogList({ onSelectPost }: BlogListProps) {
                   onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest' | 'title')}
                   className="bg-transparent text-white font-bold focus:outline-none cursor-pointer"
                 >
-                  <option value="newest" className="bg-[#181C26] text-white">Newest First</option>
-                  <option value="oldest" className="bg-[#181C26] text-white">Oldest First</option>
-                  <option value="title" className="bg-[#181C26] text-white">Title (A-Z)</option>
+                  <option value="newest" className="bg-[#181C26] text-white">
+                    Newest First
+                  </option>
+                  <option value="oldest" className="bg-[#181C26] text-white">
+                    Oldest First
+                  </option>
+                  <option value="title" className="bg-[#181C26] text-white">
+                    Title (A-Z)
+                  </option>
                 </select>
               </div>
             </div>
           </div>
 
-          {/* Row 2: Category Filter Pills */}
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-white/10">
             <span className="text-xs font-mono text-[#9CA3AF] uppercase mr-1 flex items-center gap-1">
               <Filter className="w-3.5 h-3.5 text-[var(--color-accent)]" /> Category:
@@ -215,7 +245,7 @@ export default function BlogList({ onSelectPost }: BlogListProps) {
                   onClick={() => setSelectedCategory(cat)}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-medium transition-all duration-200 cursor-pointer flex items-center space-x-1.5 ${
                     isActive
-                      ? 'bg-[var(--color-accent)] text-white shadow-lg shadow-[var(--color-accent)]/25 font-bold scale-105'
+                      ? 'bg-[var(--color-accent)] text-black shadow-lg shadow-[var(--color-accent)]/25 font-bold scale-105'
                       : 'bg-white/[0.05] hover:bg-white/[0.1] text-[#D1D5DB] border border-white/10 hover:border-white/25'
                   }`}
                 >
@@ -225,108 +255,109 @@ export default function BlogList({ onSelectPost }: BlogListProps) {
               );
             })}
           </div>
-
         </div>
 
         {/* ==================== FEATURED ARTICLE BANNER ==================== */}
         {selectedCategory === 'All' && !searchQuery && featuredArticle && (
           <div className="group relative bg-[#12151C] border border-white/15 rounded-3xl overflow-hidden shadow-2xl hover:border-[var(--color-accent)]/50 transition-all duration-300">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
-              {/* Featured Cover Image */}
-              <div className="lg:col-span-7 relative h-64 sm:h-80 lg:h-full min-h-[280px] overflow-hidden bg-black/40">
-                <img
-                  src={featuredArticle.coverImage}
-                  alt={featuredArticle.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#12151C] via-transparent to-transparent lg:bg-gradient-to-r lg:from-transparent lg:to-[#12151C]" />
-                
-                <div className="absolute top-4 left-4 z-10 flex items-center space-x-2">
-                  <span className="px-3 py-1 rounded-full bg-[var(--color-accent)] text-white font-mono text-xs font-bold uppercase tracking-wider shadow-lg flex items-center space-x-1">
-                    <Sparkles className="w-3 h-3" />
-                    <span>Featured Article</span>
-                  </span>
-                </div>
-              </div>
+              {featuredPreviewImg && (
+                <div className="lg:col-span-7 relative h-64 sm:h-80 lg:h-full min-h-[280px] overflow-hidden bg-black/40">
+                  <img
+                    src={featuredPreviewImg}
+                    alt={featuredArticle.title || 'Featured Post'}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#12151C] via-transparent to-transparent lg:bg-gradient-to-r lg:from-transparent lg:to-[#12151C]" />
 
-              {/* Featured Content Body */}
-              <div className="lg:col-span-5 p-6 sm:p-8 lg:p-10 flex flex-col justify-between space-y-6">
+                  <div className="absolute top-4 left-4 z-10 flex items-center space-x-2">
+                    <span className="px-3 py-1 rounded-full bg-[var(--color-accent)] text-black font-mono text-xs font-bold uppercase tracking-wider shadow-lg flex items-center space-x-1">
+                      <Sparkles className="w-3 h-3" />
+                      <span>Featured Entry</span>
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div
+                className={`${
+                  featuredPreviewImg ? 'lg:col-span-5' : 'lg:col-span-12'
+                } p-6 sm:p-8 lg:p-10 flex flex-col justify-between space-y-6`}
+              >
                 <div className="space-y-4">
                   <div className="flex flex-wrap items-center gap-3 text-xs font-mono text-[#9CA3AF]">
-                    <span className="px-3 py-1 rounded-full bg-white/10 border border-white/15 text-[var(--color-accent)] font-bold">
-                      {featuredArticle.category}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5 text-[var(--color-accent)]" />
-                      {featuredArticle.publishDate}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-[var(--color-accent)]" />
-                      {featuredArticle.readingTime}
-                    </span>
-                  </div>
-
-                  <h2 
-                    onClick={() => onSelectPost(featuredArticle.slug)}
-                    className="font-display font-extrabold text-xl sm:text-2xl text-white group-hover:text-[var(--color-accent)] transition-colors leading-snug cursor-pointer"
-                  >
-                    {featuredArticle.title}
-                  </h2>
-
-                  <p className="text-[#9CA3AF] text-xs sm:text-sm leading-relaxed font-light line-clamp-3">
-                    {featuredArticle.description}
-                  </p>
-
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {featuredArticle.tags.map((tag) => (
-                      <span key={tag} className="text-[10px] font-mono px-2.5 py-0.5 rounded bg-white/5 text-[#D1D5DB] border border-white/10">
-                        #{tag}
+                    {featuredArticle.category && (
+                      <span className="px-3 py-1 rounded-full bg-white/10 border border-white/15 text-[var(--color-accent)] font-bold">
+                        {featuredArticle.category}
                       </span>
-                    ))}
+                    )}
+                    {featuredArticle.publishDate && (
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                        {featuredArticle.publishDate}
+                      </span>
+                    )}
+                    {featuredArticle.readingTime && (
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                        {featuredArticle.readingTime}
+                      </span>
+                    )}
                   </div>
+
+                  {featuredArticle.title && (
+                    <h2
+                      onClick={() => onSelectPost(featuredArticle.slug)}
+                      className="font-display font-extrabold text-xl sm:text-2xl text-white group-hover:text-[var(--color-accent)] transition-colors leading-snug cursor-pointer"
+                    >
+                      {featuredArticle.title}
+                    </h2>
+                  )}
+
+                  {(featuredArticle.description || featuredArticle.content) && (
+                    <p className="text-[#9CA3AF] text-xs sm:text-sm leading-relaxed font-light line-clamp-3">
+                      {featuredArticle.description ||
+                        featuredArticle.content.replace(/!\[[^\]]*\]\([^)]+\)/g, '').slice(0, 180)}
+                    </p>
+                  )}
+
+                  {featuredArticle.tags && featuredArticle.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {featuredArticle.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="text-[10px] font-mono px-2.5 py-0.5 rounded bg-white/5 text-[#D1D5DB] border border-white/10"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-4 border-t border-white/10 flex items-center justify-between">
-                  {/* Author Profile */}
                   <div className="flex items-center space-x-2.5">
                     <img
-                      src={
-                        (!featuredArticle.author?.name ||
-                         featuredArticle.author.name === profile.name ||
-                         featuredArticle.author.name === PERSONAL_INFO.name ||
-                         featuredArticle.author.name === 'Sabbir Ahamed' ||
-                         featuredArticle.author.name.toLowerCase().includes('tansom'))
-                          ? (profile.avatar || '/images/lima.jpeg')
-                          : getAuthorAvatar(featuredArticle.author, profile.avatar)
-                      }
-                      alt={featuredArticle.author.name}
+                      src={getAuthorAvatar(featuredArticle.author, profile.avatar)}
+                      alt={featuredArticle.author?.name || profile.name}
                       className="w-8 h-8 rounded-full border border-[var(--color-accent)] object-cover"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = '/images/lima.jpeg';
                       }}
                     />
                     <span className="text-xs font-mono text-white font-medium">
-                      {(!featuredArticle.author?.name ||
-                        featuredArticle.author.name === profile.name ||
-                        featuredArticle.author.name === PERSONAL_INFO.name ||
-                        featuredArticle.author.name === 'Sabbir Ahamed' ||
-                        featuredArticle.author.name.toLowerCase().includes('tansom'))
-                        ? profile.name
-                        : featuredArticle.author.name}
+                      {featuredArticle.author?.name || profile.name}
                     </span>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => onSelectPost(featuredArticle.slug)}
-                      className="inline-flex items-center space-x-2 shimmer bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-mono font-bold text-xs px-5 py-2.5 rounded-full shadow-lg shadow-[var(--color-accent)]/20 transition-all hover:scale-105 cursor-pointer"
-                    >
-                      <span>Read Article</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => onSelectPost(featuredArticle.slug)}
+                    className="inline-flex items-center space-x-2 shimmer bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-black font-mono font-bold text-xs px-5 py-2.5 rounded-full shadow-lg shadow-[var(--color-accent)]/20 transition-all hover:scale-105 cursor-pointer"
+                  >
+                    <span>Read Post</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             </div>
@@ -364,95 +395,144 @@ export default function BlogList({ onSelectPost }: BlogListProps) {
               <BookOpen className="w-12 h-12 text-[#9CA3AF] mx-auto stroke-1" />
               <h4 className="font-display font-bold text-lg text-white">No articles found</h4>
               <p className="text-xs font-mono text-[#9CA3AF] max-w-md mx-auto">
-                No published articles matched your search (Category: "{selectedCategory}", Query: "{searchQuery}").
+                No published entries matched your current filter.
               </p>
               <div className="flex justify-center gap-3 pt-2">
-                <button
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedCategory('All');
-                  }}
-                  className="px-5 py-2.5 rounded-full bg-white/10 text-white font-mono text-xs hover:bg-white/20 transition-colors cursor-pointer"
-                >
-                  Clear Filters
-                </button>
+                {(searchQuery || selectedCategory !== 'All') && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedCategory('All');
+                    }}
+                    className="px-5 py-2.5 rounded-full bg-white/10 text-white font-mono text-xs hover:bg-white/20 transition-colors cursor-pointer"
+                  >
+                    Clear Filters
+                  </button>
+                )}
               </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-              {displayGridPosts.map((post) => (
-                <article
-                  key={post.id}
-                  className="group bg-[#12151C] border border-white/10 hover:border-[var(--color-accent)]/50 rounded-2xl overflow-hidden shadow-xl flex flex-col justify-between transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-[var(--color-accent)]/10 cursor-pointer relative"
-                  onClick={() => onSelectPost(post.slug)}
-                >
-                  {/* Card Image */}
-                  <div className="relative h-48 overflow-hidden bg-black/40">
-                    <img
-                      src={post.coverImage}
-                      alt={post.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-                      referrerPolicy="no-referrer"
-                    />
-                    
-                    {/* Top Badges */}
-                    <div className="absolute top-3 left-3 flex items-center space-x-2">
-                      <span className="px-2.5 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-[var(--color-accent)] font-mono text-[10px] font-bold uppercase tracking-wider">
-                        {post.category}
-                      </span>
-                    </div>
-                  </div>
+              {displayGridPosts.map((post) => {
+                const previewImg = getPostPreviewImage(post);
+                const cleanSnippet =
+                  post.description ||
+                  (post.content ? post.content.replace(/!\[[^\]]*\]\([^)]+\)/g, '').trim() : '');
 
-                  {/* Card Content Body */}
-                  <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
-                    <div className="space-y-2.5">
-                      <div className="flex items-center space-x-3 text-[11px] font-mono text-[#9CA3AF]">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3 text-[var(--color-accent)]" />
-                          {post.publishDate}
-                        </span>
-                        <span>•</span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-[var(--color-accent)]" />
-                          {post.readingTime}
-                        </span>
+                return (
+                  <article
+                    key={post.id}
+                    className="group bg-[#12151C] border border-white/10 hover:border-[var(--color-accent)]/50 rounded-2xl overflow-hidden shadow-xl flex flex-col justify-between transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-[var(--color-accent)]/10 cursor-pointer relative"
+                    onClick={() => onSelectPost(post.slug)}
+                  >
+                    {previewImg && (
+                      <div className="relative h-48 overflow-hidden bg-black/40">
+                        <img
+                          src={previewImg}
+                          alt={post.title || 'Blog Post'}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                          referrerPolicy="no-referrer"
+                        />
+
+                        {post.category && (
+                          <div className="absolute top-3 left-3 flex items-center space-x-2">
+                            <span className="px-2.5 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-[var(--color-accent)] font-mono text-[10px] font-bold uppercase tracking-wider">
+                              {post.category}
+                            </span>
+                          </div>
+                        )}
                       </div>
+                    )}
 
-                      <h4 className="font-display font-bold text-lg text-white group-hover:text-[var(--color-accent)] transition-colors leading-snug line-clamp-2">
-                        {post.title}
-                      </h4>
-
-                      <p className="text-[#9CA3AF] text-xs font-light leading-relaxed line-clamp-3">
-                        {post.description}
-                      </p>
-                    </div>
-
-                    <div className="space-y-4 pt-3 border-t border-white/10">
-                      {/* Tags */}
-                      <div className="flex flex-wrap gap-1">
-                        {post.tags && post.tags.slice(0, 3).map((tag) => (
-                          <span key={tag} className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-[#D1D5DB] border border-white/5">
-                            #{tag}
+                    <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
+                      <div className="space-y-2.5">
+                        {!previewImg && post.category && (
+                          <span className="inline-block px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-[var(--color-accent)] font-mono text-[10px] font-bold uppercase tracking-wider">
+                            {post.category}
                           </span>
-                        ))}
+                        )}
+
+                        {(post.publishDate || post.readingTime) && (
+                          <div className="flex items-center space-x-3 text-[11px] font-mono text-[#9CA3AF]">
+                            {post.publishDate && (
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3 text-[var(--color-accent)]" />
+                                {post.publishDate}
+                              </span>
+                            )}
+                            {post.publishDate && post.readingTime && <span>•</span>}
+                            {post.readingTime && (
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-[var(--color-accent)]" />
+                                {post.readingTime}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {post.title && (
+                          <h4 className="font-display font-bold text-lg text-white group-hover:text-[var(--color-accent)] transition-colors leading-snug line-clamp-2">
+                            {post.title}
+                          </h4>
+                        )}
+
+                        {cleanSnippet && (
+                          <p className="text-[#9CA3AF] text-xs font-light leading-relaxed line-clamp-3">
+                            {cleanSnippet}
+                          </p>
+                        )}
                       </div>
 
-                      {/* Read More Footer */}
-                      <div className="flex items-center justify-between text-xs font-mono font-bold text-[var(--color-accent)]">
-                        <span className="group-hover:underline flex items-center gap-1">
-                          Read Article
-                        </span>
-                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      <div className="space-y-4 pt-3 border-t border-white/10">
+                        {post.tags && post.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {post.tags.slice(0, 3).map((tag) => (
+                              <span
+                                key={tag}
+                                className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-[#D1D5DB] border border-white/5"
+                              >
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between text-xs font-mono font-bold text-[var(--color-accent)]">
+                          <span className="group-hover:underline flex items-center gap-1">
+                            Open Post
+                          </span>
+                          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </div>
           )}
         </div>
-
       </div>
+
+      {/* Direct Blog / Photo Post Composer */}
+      <CreateBlogModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSaved={(saved) => {
+          onSelectPost(saved.slug);
+        }}
+      />
+
+      {/* Unified System Passcode Challenge */}
+      <AdminPasscodeModal
+        isOpen={isPasscodeModalOpen}
+        onClose={() => setIsPasscodeModalOpen(false)}
+        onSuccess={() => {
+          setIsPasscodeModalOpen(false);
+          setIsCreateModalOpen(true);
+        }}
+        title="System Lock — New Blog Post"
+        description="নতুন ব্লগ বা ছবি পোস্ট করতে সিস্টেম পাসকোড দিন।"
+      />
     </div>
   );
 }

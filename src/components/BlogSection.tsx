@@ -2,34 +2,40 @@
  * -----------------------------------------
  * Project     : Tansom Akther Lima Educator Portfolio
  * Module      : Blog Section Component (Home Page)
- * Description : Showcases featured engineering blog posts on the main portfolio page.
- *               Includes article previews, tags, read times, and 1-click transition
- *               to full blog archive and management console.
+ * Description : Showcases featured blog posts on the main portfolio page with
+ *               graceful support for optional fields and uploaded images.
  * Author      : Tansom Akther Lima
- * Last Updated: 2026-09-10
  * -----------------------------------------
  */
 
-import React, { useState, useEffect } from 'react';
-import { 
-  BookOpen, 
-  Sparkles, 
-  ArrowRight, 
-  Calendar, 
-  Clock 
-} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { BookOpen, Sparkles, ArrowRight, Calendar, Clock } from 'lucide-react';
 import { BlogPost } from '../data/blogs';
 import { getStoredBlogPosts, BLOGS_UPDATED_EVENT } from '../utils/blogStore';
 import { PORTFOLIO_UPDATED_EVENT } from '../utils/portfolioStore';
 import { PERSONAL_INFO } from '../data';
 import { usePortfolioProfile } from '../utils/usePortfolioProfile';
 
+const getPostPreviewImage = (post?: BlogPost): string => {
+  if (!post) return '';
+  if (post.coverImage) return post.coverImage;
+  if (post.inlineImages) {
+    const firstInline = Object.values(post.inlineImages)[0];
+    if (firstInline) return firstInline;
+  }
+  return '';
+};
+
 const getAuthorAvatar = (author?: { name?: string; avatar?: string }, fallbackAvatar?: string) => {
   const defaultAvatar = fallbackAvatar || PERSONAL_INFO.avatar || '/images/lima.jpeg';
-  if (!author || !author.avatar || author.avatar.includes('sabbir_avatar') || author.name === PERSONAL_INFO.name) {
+  const raw = (author?.avatar || '').trim();
+  if (!raw || raw.includes('sabbir_avatar') || raw.includes('./assets')) {
     return defaultAvatar;
   }
-  return author.avatar;
+  if (raw !== '/images/lima.jpeg' && raw !== PERSONAL_INFO.avatar) {
+    return raw;
+  }
+  return defaultAvatar;
 };
 
 interface BlogSectionProps {
@@ -53,14 +59,16 @@ export default function BlogSection({ onSelectPost, onViewAllBlog }: BlogSection
     };
   }, []);
 
-  // Filter published posts and grab top 3-4
-  const publishedPosts = posts.filter(p => p.status !== 'Draft');
-  const featuredPost = publishedPosts.find(p => p.featured) || publishedPosts[0];
-  const secondaryPosts = publishedPosts.filter(p => p.id !== featuredPost?.id).slice(0, 3);
+  const publishedPosts = posts.filter((p) => p.status !== 'Draft');
+  const featuredPost = publishedPosts.find((p) => p.featured) || publishedPosts[0];
+  const secondaryPosts = publishedPosts.filter((p) => p.id !== featuredPost?.id).slice(0, 3);
+  const featuredImg = getPostPreviewImage(featuredPost);
 
   return (
-    <section id="blog" className="py-20 relative bg-[#0B0D12] border-t border-white/10 overflow-hidden">
-      {/* Background Ambience */}
+    <section
+      id="blog"
+      className="py-20 relative bg-[#0B0D12] border-t border-white/10 overflow-hidden"
+    >
       <div className="absolute top-1/3 left-0 w-96 h-96 bg-[var(--color-accent)]/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -81,11 +89,10 @@ export default function BlogSection({ onSelectPost, onViewAllBlog }: BlogSection
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
-            {/* View Full Blog Action */}
             <button
               id="view-all-blogs-btn"
               onClick={onViewAllBlog}
-              className="inline-flex items-center space-x-2 shimmer bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-mono font-bold text-xs px-6 py-3 rounded-full shadow-lg shadow-[var(--color-accent)]/25 transition-all hover:scale-105 cursor-pointer"
+              className="inline-flex items-center space-x-2 shimmer bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-black font-mono font-bold text-xs px-6 py-3 rounded-full shadow-lg shadow-[var(--color-accent)]/25 transition-all hover:scale-105 cursor-pointer"
             >
               <span>Explore All Articles</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -95,138 +102,158 @@ export default function BlogSection({ onSelectPost, onViewAllBlog }: BlogSection
 
         {/* Blog Showcase Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Main Featured Post */}
-            {featuredPost && (
-              <div 
-                onClick={() => onSelectPost(featuredPost.slug)}
-                className="lg:col-span-7 group cursor-pointer bg-[#12151C] border border-white/10 hover:border-[var(--color-accent)]/50 rounded-3xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-[var(--color-accent)]/10 flex flex-col"
-              >
+          {/* Main Featured Post */}
+          {featuredPost && (
+            <div
+              onClick={() => onSelectPost(featuredPost.slug)}
+              className="lg:col-span-7 group cursor-pointer bg-[#12151C] border border-white/10 hover:border-[var(--color-accent)]/50 rounded-3xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-[var(--color-accent)]/10 flex flex-col"
+            >
+              {featuredImg && (
                 <div className="relative aspect-video overflow-hidden bg-black/40">
                   <img
-                    src={featuredPost.coverImage}
-                    alt={featuredPost.title}
+                    src={featuredImg}
+                    alt={featuredPost.title || 'Featured Post'}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     loading="lazy"
                   />
                   <div className="absolute top-4 left-4">
-                    <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-[var(--color-accent)] text-white shadow-md">
+                    <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-[var(--color-accent)] text-black shadow-md">
                       Featured
                     </span>
                   </div>
-                  <div className="absolute bottom-4 left-4 right-4 flex items-center space-x-3 text-xs font-mono text-white/90 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full w-fit">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5 text-[var(--color-accent)]" />
-                      {featuredPost.publishDate}
-                    </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-[var(--color-accent)]" />
-                      {featuredPost.readingTime}
-                    </span>
-                  </div>
+                  {(featuredPost.publishDate || featuredPost.readingTime) && (
+                    <div className="absolute bottom-4 left-4 right-4 flex items-center space-x-3 text-xs font-mono text-white/90 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full w-fit">
+                      {featuredPost.publishDate && (
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                          {featuredPost.publishDate}
+                        </span>
+                      )}
+                      {featuredPost.publishDate && featuredPost.readingTime && <span>•</span>}
+                      {featuredPost.readingTime && (
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                          {featuredPost.readingTime}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
+              )}
 
-                <div className="p-6 sm:p-8 flex-1 flex flex-col justify-between space-y-4">
-                  <div className="space-y-3">
+              <div className="p-6 sm:p-8 flex-1 flex flex-col justify-between space-y-4">
+                <div className="space-y-3">
+                  {featuredPost.category && (
                     <span className="text-xs font-mono text-[var(--color-accent)] font-bold uppercase tracking-wider">
                       {featuredPost.category}
                     </span>
+                  )}
+                  {featuredPost.title && (
                     <h3 className="font-display font-black text-xl sm:text-2xl text-white group-hover:text-[var(--color-accent)] transition-colors leading-snug">
                       {featuredPost.title}
                     </h3>
+                  )}
+                  {(featuredPost.description || featuredPost.content) && (
                     <p className="text-[#9CA3AF] text-sm font-light leading-relaxed line-clamp-3">
-                      {featuredPost.description}
+                      {featuredPost.description ||
+                        featuredPost.content.replace(/!\[[^\]]*\]\([^)]+\)/g, '').slice(0, 160)}
                     </p>
-                  </div>
+                  )}
+                </div>
 
-                  <div className="pt-4 border-t border-white/10 flex items-center justify-between">
-                    <div className="flex items-center space-x-2.5">
-                      <img
-                        src={
-                          (!featuredPost.author?.name ||
-                           featuredPost.author.name === profile.name ||
-                           featuredPost.author.name === PERSONAL_INFO.name ||
-                           featuredPost.author.name === 'Sabbir Ahamed' ||
-                           featuredPost.author.name.toLowerCase().includes('tansom'))
-                            ? (profile.avatar || '/images/lima.jpeg')
-                            : getAuthorAvatar(featuredPost.author, profile.avatar)
-                        }
-                        alt={featuredPost.author.name}
-                        className="w-7 h-7 rounded-full border border-[var(--color-accent)] object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/images/lima.jpeg';
-                        }}
-                      />
-                      <span className="text-xs font-mono text-[#D1D5DB]">
-                        {(!featuredPost.author?.name ||
-                          featuredPost.author.name === profile.name ||
-                          featuredPost.author.name === PERSONAL_INFO.name ||
-                          featuredPost.author.name === 'Sabbir Ahamed' ||
-                          featuredPost.author.name.toLowerCase().includes('tansom'))
-                          ? profile.name
-                          : featuredPost.author.name}
-                      </span>
-                    </div>
-                    <div className="inline-flex items-center space-x-1 text-xs font-mono font-bold text-[var(--color-accent)] group-hover:translate-x-1 transition-transform">
-                      <span>Read Full Article</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </div>
+                <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+                  <div className="flex items-center space-x-2.5">
+                    <img
+                      src={getAuthorAvatar(featuredPost.author, profile.avatar)}
+                      alt={featuredPost.author?.name || profile.name}
+                      className="w-7 h-7 rounded-full border border-[var(--color-accent)] object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/images/lima.jpeg';
+                      }}
+                    />
+                    <span className="text-xs font-mono text-[#D1D5DB]">
+                      {featuredPost.author?.name || profile.name}
+                    </span>
+                  </div>
+                  <div className="inline-flex items-center space-x-1 text-xs font-mono font-bold text-[var(--color-accent)] group-hover:translate-x-1 transition-transform">
+                    <span>Read Full Article</span>
+                    <ArrowRight className="w-4 h-4" />
                   </div>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Secondary Posts List */}
-            <div className="lg:col-span-5 flex flex-col justify-between space-y-4">
-              {secondaryPosts.map((post) => (
+          {/* Secondary Posts List */}
+          <div className="lg:col-span-5 flex flex-col justify-between space-y-4">
+            {secondaryPosts.map((post) => {
+              const thumb = getPostPreviewImage(post);
+              const snippet =
+                post.description ||
+                (post.content ? post.content.replace(/!\[[^\]]*\]\([^)]+\)/g, '').trim() : '');
+
+              return (
                 <div
                   key={post.id}
                   onClick={() => onSelectPost(post.slug)}
                   className="group cursor-pointer bg-[#12151C] border border-white/10 hover:border-[var(--color-accent)]/40 rounded-2xl p-5 transition-all duration-200 hover:bg-[#181C26] flex items-start gap-4"
                 >
-                  <img
-                    src={post.coverImage}
-                    alt={post.title}
-                    className="w-24 h-24 rounded-xl object-cover shrink-0 border border-white/10 group-hover:border-[var(--color-accent)]/30 transition-colors"
-                    loading="lazy"
-                  />
+                  {thumb && (
+                    <img
+                      src={thumb}
+                      alt={post.title || 'Post'}
+                      className="w-24 h-24 rounded-xl object-cover shrink-0 border border-white/10 group-hover:border-[var(--color-accent)]/30 transition-colors"
+                      loading="lazy"
+                    />
+                  )}
                   <div className="flex-1 min-w-0 space-y-1.5">
-                    <div className="flex items-center space-x-2 text-[11px] font-mono text-[#9CA3AF]">
-                      <span className="text-[var(--color-accent)] font-bold">{post.category}</span>
-                      <span>•</span>
-                      <span>{post.readingTime}</span>
-                    </div>
-                    <h4 className="font-display font-bold text-sm sm:text-base text-white group-hover:text-[var(--color-accent)] transition-colors leading-snug line-clamp-2">
-                      {post.title}
-                    </h4>
-                    <p className="text-[#9CA3AF] text-xs font-light line-clamp-2 leading-relaxed">
-                      {post.description}
-                    </p>
+                    {(post.category || post.readingTime) && (
+                      <div className="flex items-center space-x-2 text-[11px] font-mono text-[#9CA3AF]">
+                        {post.category && (
+                          <span className="text-[var(--color-accent)] font-bold">
+                            {post.category}
+                          </span>
+                        )}
+                        {post.category && post.readingTime && <span>•</span>}
+                        {post.readingTime && <span>{post.readingTime}</span>}
+                      </div>
+                    )}
+                    {post.title && (
+                      <h4 className="font-display font-bold text-sm sm:text-base text-white group-hover:text-[var(--color-accent)] transition-colors leading-snug line-clamp-2">
+                        {post.title}
+                      </h4>
+                    )}
+                    {snippet && (
+                      <p className="text-[#9CA3AF] text-xs font-light line-clamp-2 leading-relaxed">
+                        {snippet}
+                      </p>
+                    )}
                   </div>
                 </div>
-              ))}
+              );
+            })}
 
-              {/* Bottom Explore Card */}
-              <div 
-                onClick={onViewAllBlog}
-                className="p-6 rounded-2xl bg-gradient-to-r from-[var(--color-accent)]/10 to-transparent border border-[var(--color-accent)]/20 flex items-center justify-between group cursor-pointer hover:border-[var(--color-accent)]/50 transition-all"
-              >
-                <div className="space-y-1">
-                  <span className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
-                    <BookOpen className="w-4 h-4 text-[var(--color-accent)]" />
-                    Want to explore more reflections?
-                  </span>
-                  <p className="text-xs text-[#9CA3AF] font-light">
-                    Browse ideas across English pedagogy, classroom leadership, educational media, and student growth.
-                  </p>
-                </div>
-                <div className="w-9 h-9 rounded-full bg-[var(--color-accent)] text-white flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-lg shadow-[var(--color-accent)]/20">
-                  <ArrowRight className="w-4 h-4" />
-                </div>
+            {/* Bottom Explore Card */}
+            <div
+              onClick={onViewAllBlog}
+              className="p-6 rounded-2xl bg-gradient-to-r from-[var(--color-accent)]/10 to-transparent border border-[var(--color-accent)]/20 flex items-center justify-between group cursor-pointer hover:border-[var(--color-accent)]/50 transition-all"
+            >
+              <div className="space-y-1">
+                <span className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
+                  <BookOpen className="w-4 h-4 text-[var(--color-accent)]" />
+                  Want to explore more reflections?
+                </span>
+                <p className="text-xs text-[#9CA3AF] font-light">
+                  Browse ideas across English pedagogy, classroom leadership, educational media, and student growth.
+                </p>
+              </div>
+              <div className="w-9 h-9 rounded-full bg-[var(--color-accent)] text-black flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-lg shadow-[var(--color-accent)]/20">
+                <ArrowRight className="w-4 h-4" />
               </div>
             </div>
           </div>
         </div>
-      </section>
-    );
-  }
+      </div>
+    </section>
+  );
+}

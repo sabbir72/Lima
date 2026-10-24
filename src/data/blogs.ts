@@ -11,6 +11,7 @@ export interface BlogPost {
   tags: string[];
   featured?: boolean;
   status?: 'Published' | 'Draft';
+  inlineImages?: Record<string, string>;
   author: {
     name: string;
     role: string;

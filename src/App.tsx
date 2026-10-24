@@ -184,7 +184,7 @@ export default function App() {
         />
       )}
 
-      {/* Passcode Challenge Modal */}
+      {/* Unified System Passcode Modal */}
       {isAdminPasscodeModalOpen && (
         <AdminPasscodeModal
           isOpen={isAdminPasscodeModalOpen}
@@ -193,14 +193,8 @@ export default function App() {
             setAdminChallengeAction(null);
           }}
           onSuccess={handleAdminPasscodeSuccess}
-          title={
-            adminChallengeAction === 'resume'
-              ? 'Resume Builder Admin Access'
-              : adminChallengeAction === 'coverLetter'
-              ? 'Cover Letter Generator Admin Access'
-              : 'Admin Portal Access'
-          }
-          description="Enter the admin passcode to access administrative settings and content management."
+          title="System Lock"
+          description="সম্পূর্ণ পোর্টফোলিও এবং ব্লগ সিস্টেম আনলক করতে পাসকোড দিন।"
         />
       )}
 

@@ -1,147 +1,138 @@
 /**
  * -----------------------------------------
  * Project     : Tansom Akther Lima Educator Portfolio
- * Module      : Unified System Lock & Security Store
- * Description : Centralized access and lock management system controlling:
- *               1. Blog Lock & Public Access Controls
- *               2. ATS Resume Suite Passcode Locks & PDF Export Locks
- *               3. AI Cover Letter Suite Access Locks
- *               4. CMS Projects, Experience, Skills & Profile Edit Locks
- *               5. Master All-in-One Global Lock Switch
+ * Module      : Unified Single System Lock Store
+ * Description : Consolidated single system-wide lock across Portfolio, Blog,
+ *               ATS Resume Suite, Cover Letter Suite, and Admin CMS.
+ *               Eliminates separate conflicting per-module locks in favor of
+ *               one global lock state + single Admin Passcode unlock.
  * Author      : Tansom Akther Lima
- * Last Updated: 2026-10-07
  * -----------------------------------------
  */
 
+import { isAdminAuthenticated } from './adminAuth';
+
 export interface SystemLocks {
-  // Blog Section
-  blogLocked: boolean;             // Master lock for blog content
-  blogPublicBrowsing: boolean;     // Allow public to view published blogs
-  blogArticleEditingLocked: boolean; // Prevent draft creation / article modification
-  
-  // ATS Resume Suite
-  resumeLocked: boolean;           // Restrict Resume Builder to Admin only
-  resumeDownloadLocked: boolean;   // Lock PDF generation and downloads
-  
-  // AI Cover Letter Suite
-  coverLetterLocked: boolean;      // Restrict Cover Letter Suite to Admin only
-  coverLetterExportLocked: boolean;// Lock export and copying
-  
-  // Portfolio CMS Data Locks
-  projectsLocked: boolean;         // Lock projects from editing/deletion
-  experienceLocked: boolean;       // Lock career milestones from editing
-  skillsLocked: boolean;           // Lock skills matrix from editing
-  profileLocked: boolean;          // Lock personal profile metrics
-  
-  // Timestamp
+  // Master Single System Lock (Controls the entire application uniformly)
+  systemLocked: boolean;
+
+  // Derived synchronized fields kept for compatibility across components
+  blogLocked: boolean;
+  blogPublicBrowsing: boolean;
+  blogArticleEditingLocked: boolean;
+  resumeLocked: boolean;
+  resumeDownloadLocked: boolean;
+  coverLetterLocked: boolean;
+  coverLetterExportLocked: boolean;
+  projectsLocked: boolean;
+  experienceLocked: boolean;
+  skillsLocked: boolean;
+  profileLocked: boolean;
+
   lastModified: string;
 }
 
-const STORAGE_KEY_LOCKS = 'sabbir_system_locks_v1';
+const STORAGE_KEY_LOCKS = 'tansom_unified_system_lock_v2';
 export const LOCKS_UPDATED_EVENT = 'sabbir_system_locks_updated';
 
-export const DEFAULT_LOCKS: SystemLocks = {
-  blogLocked: false,
-  blogPublicBrowsing: true,
-  blogArticleEditingLocked: false,
-  resumeLocked: true,             // Admin-only by default as requested
-  resumeDownloadLocked: true,     // Admin-only PDF downloads
-  coverLetterLocked: true,        // Admin-only by default as requested
-  coverLetterExportLocked: true,
-  projectsLocked: false,
-  experienceLocked: false,
-  skillsLocked: false,
-  profileLocked: false,
-  lastModified: new Date().toISOString(),
-};
+function buildUnifiedLockState(systemLocked: boolean, lastModified?: string): SystemLocks {
+  return {
+    systemLocked,
+    blogLocked: systemLocked,
+    blogPublicBrowsing: true, // Public visitors can always read published articles
+    blogArticleEditingLocked: systemLocked,
+    resumeLocked: systemLocked,
+    resumeDownloadLocked: systemLocked,
+    coverLetterLocked: systemLocked,
+    coverLetterExportLocked: systemLocked,
+    projectsLocked: systemLocked,
+    experienceLocked: systemLocked,
+    skillsLocked: systemLocked,
+    profileLocked: systemLocked,
+    lastModified: lastModified || new Date().toISOString(),
+  };
+}
+
+export const DEFAULT_LOCKS: SystemLocks = buildUnifiedLockState(true);
 
 /**
- * Retrieve current system lock configuration from localStorage
+ * Retrieve current unified system lock state
  */
 export function getSystemLocks(): SystemLocks {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_LOCKS);
     if (raw) {
       const parsed = JSON.parse(raw);
-      return { ...DEFAULT_LOCKS, ...parsed };
+      if (typeof parsed?.systemLocked === 'boolean') {
+        return buildUnifiedLockState(parsed.systemLocked, parsed.lastModified);
+      }
     }
   } catch (e) {
-    console.error('Error reading lock settings:', e);
+    console.error('Error reading unified lock state:', e);
   }
   return { ...DEFAULT_LOCKS };
 }
 
 /**
- * Update system lock configuration
+ * Returns true if protected actions currently require the Admin Passcode.
+ * When Admin is authenticated OR the Master System Lock is turned off, returns false.
  */
-export function updateSystemLocks(updates: Partial<SystemLocks>): SystemLocks {
+export function isSystemActionLocked(): boolean {
+  if (isAdminAuthenticated()) return false;
+  return getSystemLocks().systemLocked;
+}
+
+/**
+ * Set the single global system lock ON or OFF
+ */
+export function setMasterSystemLock(locked: boolean): SystemLocks {
+  const updated = buildUnifiedLockState(locked);
   try {
-    const current = getSystemLocks();
-    const updated: SystemLocks = {
-      ...current,
-      ...updates,
-      lastModified: new Date().toISOString(),
-    };
     localStorage.setItem(STORAGE_KEY_LOCKS, JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent(LOCKS_UPDATED_EVENT, { detail: updated }));
-    return updated;
   } catch (e) {
-    console.error('Error saving lock settings:', e);
-    return getSystemLocks();
+    console.error('Error saving unified lock state:', e);
   }
+  return updated;
 }
 
 /**
- * Toggle a specific lock flag
+ * Update system lock configuration (maps any lock update to the single unified lock)
  */
-export function toggleSystemLock(lockKey: keyof Omit<SystemLocks, 'lastModified'>): SystemLocks {
+export function updateSystemLocks(updates: Partial<SystemLocks>): SystemLocks {
   const current = getSystemLocks();
-  return updateSystemLocks({
-    [lockKey]: !current[lockKey],
-  });
+  const nextLocked =
+    typeof updates.systemLocked === 'boolean'
+      ? updates.systemLocked
+      : current.systemLocked;
+  return setMasterSystemLock(nextLocked);
 }
 
 /**
- * 1-Click Master Lock: Lock all systems down
+ * Toggle the single unified system lock
+ */
+export function toggleSystemLock(_lockKey?: keyof Omit<SystemLocks, 'lastModified'>): SystemLocks {
+  const current = getSystemLocks();
+  return setMasterSystemLock(!current.systemLocked);
+}
+
+/**
+ * 1-Click Master Lock: Enable single unified system lock
  */
 export function lockAllSystems(): SystemLocks {
-  return updateSystemLocks({
-    blogLocked: true,
-    blogPublicBrowsing: false,
-    blogArticleEditingLocked: true,
-    resumeLocked: true,
-    resumeDownloadLocked: true,
-    coverLetterLocked: true,
-    coverLetterExportLocked: true,
-    projectsLocked: true,
-    experienceLocked: true,
-    skillsLocked: true,
-    profileLocked: true,
-  });
+  return setMasterSystemLock(true);
 }
 
 /**
- * 1-Click Master Unlock: Unlock all standard portfolio features
+ * 1-Click Master Unlock: Turn off system lock globally
  */
 export function unlockAllSystems(): SystemLocks {
-  return updateSystemLocks({
-    blogLocked: false,
-    blogPublicBrowsing: true,
-    blogArticleEditingLocked: false,
-    resumeLocked: false,
-    resumeDownloadLocked: false,
-    coverLetterLocked: false,
-    coverLetterExportLocked: false,
-    projectsLocked: false,
-    experienceLocked: false,
-    skillsLocked: false,
-    profileLocked: false,
-  });
+  return setMasterSystemLock(false);
 }
 
 /**
- * Reset locks to standard security baseline
+ * Reset to standard protected mode (Single System Lock ON)
  */
 export function resetSystemLocks(): SystemLocks {
-  return updateSystemLocks({ ...DEFAULT_LOCKS });
+  return setMasterSystemLock(true);
 }

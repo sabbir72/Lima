@@ -16,12 +16,16 @@ import {
   ShieldCheck, Lock, KeyRound, ArrowLeft, Plus, Edit2, Trash2, Copy, 
   ArrowUp, ArrowDown, ExternalLink, Check, X, AlertCircle, RefreshCw, 
   Download, Upload, Search, Filter, Layers, Briefcase, Zap, Terminal, 
-  Cpu, FileCode, CheckCircle2, ChevronRight, Eye, Code, FileText, Sparkles,
+  Cpu, FileCode, CheckCircle2, ChevronRight, Eye, EyeOff, Code, FileText, Sparkles,
   Info, Tag, Activity, Database, ClipboardList, Play, Save, BookOpen, User,
   Globe, Mail, Phone, MapPin, Linkedin, Github, Unlock, Printer, Sliders,
-  CheckSquare, Square, Building2, Send, Bookmark, Award, Target, Clock, Palette
+  CheckSquare, Square, Building2, Send, Bookmark, Award, Target, Clock, Palette,
+  Image as ImageIcon
 } from 'lucide-react';
 import ThemeSelectorModal from './ThemeSelectorModal';
+import ImageUploadInput from './ImageUploadInput';
+import CreateBlogModal from './CreateBlogModal';
+import { navigateTo } from '../utils/router';
 import { COLOR_THEMES, getSavedThemeId, setAndApplyTheme } from '../utils/themeStore';
 import { Project, Experience, Skill, Reference } from '../types';
 import { 
@@ -36,7 +40,7 @@ import {
 } from '../utils/portfolioStore';
 import { 
   getStoredBlogPosts, upsertBlogPost, deleteBlogPost, resetStoredBlogPosts, 
-  generateSlug, calculateReadingTime, BLOGS_UPDATED_EVENT 
+  BLOGS_UPDATED_EVENT 
 } from '../utils/blogStore';
 import { BlogPost } from '../data/blogs';
 import { 
@@ -49,8 +53,7 @@ import {
 } from '../utils/adminAuth';
 import { 
   getSystemLocks, 
-  updateSystemLocks, 
-  toggleSystemLock, 
+  setMasterSystemLock,
   lockAllSystems, 
   unlockAllSystems, 
   resetSystemLocks, 
@@ -95,11 +98,12 @@ export default function AdminPortal({
   // Active Tab
   const [activeTab, setActiveTab] = useState<AdminTab>(initialTab);
 
-  // System Lock State for Everything
+  // Unified Single System Lock State
   const [systemLocks, setSystemLocks] = useState<SystemLocks>(() => getSystemLocks());
-
-  // Blog Section Lock System State
-  const [isBlogLockStrict, setIsBlogLockStrict] = useState<boolean>(true);
+  const loginInputRef = useRef<HTMLInputElement>(null);
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+  const [viewportOffsetTop, setViewportOffsetTop] = useState<number>(0);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState<boolean>(false);
 
   // Portfolio Datasets
   const [projects, setProjects] = useState<Project[]>(() => getStoredProjects());
@@ -206,24 +210,43 @@ export default function AdminPortal({
     };
   }, []);
 
-  // Strict 2-Minute Inactivity Auto-Logout Timer & Interaction Tracker
+  // Mobile Virtual Keyboard Adaptation for Admin Passcode Gate
+  useEffect(() => {
+    if (isAdmin && systemLocks.systemLocked) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const handleViewportChange = () => {
+      setViewportHeight(vv.height);
+      setViewportOffsetTop(vv.offsetTop);
+      const heightRatio = vv.height / window.innerHeight;
+      setIsKeyboardOpen(heightRatio < 0.78 || window.innerHeight - vv.height > 140);
+    };
+
+    handleViewportChange();
+    vv.addEventListener('resize', handleViewportChange);
+    vv.addEventListener('scroll', handleViewportChange);
+    return () => {
+      vv.removeEventListener('resize', handleViewportChange);
+      vv.removeEventListener('scroll', handleViewportChange);
+    };
+  }, [isAdmin, systemLocks.systemLocked]);
+
+  // 15-Minute Active Admin Session Auto-Logout Timer & Interaction Tracker
   useEffect(() => {
     if (!isAdmin) return;
 
-    // Reset countdown immediately on login
     setSessionRemaining(getAdminSessionRemainingSeconds());
 
-    // Tick every 1 second
     const timerInterval = setInterval(() => {
       const remaining = getAdminSessionRemainingSeconds();
       setSessionRemaining(remaining);
       if (remaining <= 0 || !isAdminAuthenticated()) {
         setIsAdmin(false);
-        showToast('Admin session expired after 2 minutes of inactivity.');
+        showToast('সেশনটির মেয়াদ শেষ হয়েছে। আবার আনলক করুন।');
       }
     }, 1000);
 
-    // Track user activity to refresh session during active usage
     let lastRecorded = Date.now();
     const handleActivity = () => {
       const now = Date.now();
@@ -236,7 +259,7 @@ export default function AdminPortal({
 
     const handleSessionExpired = () => {
       setIsAdmin(false);
-      showToast('Admin session expired after 2 minutes. Logged out.');
+      showToast('ইনঅ্যাক্টিভিটির কারণে সিস্টেম আবার লক হয়েছে।');
     };
 
     window.addEventListener('mousemove', handleActivity, { passive: true });
@@ -244,6 +267,8 @@ export default function AdminPortal({
     window.addEventListener('click', handleActivity, { passive: true });
     window.addEventListener('scroll', handleActivity, { passive: true });
     window.addEventListener('touchstart', handleActivity, { passive: true });
+    window.addEventListener('input', handleActivity, { passive: true });
+    window.addEventListener('focus', handleActivity, { passive: true });
     window.addEventListener(ADMIN_SESSION_EXPIRED_EVENT, handleSessionExpired);
 
     return () => {
@@ -253,6 +278,8 @@ export default function AdminPortal({
       window.removeEventListener('click', handleActivity);
       window.removeEventListener('scroll', handleActivity);
       window.removeEventListener('touchstart', handleActivity);
+      window.removeEventListener('input', handleActivity);
+      window.removeEventListener('focus', handleActivity);
       window.removeEventListener(ADMIN_SESSION_EXPIRED_EVENT, handleSessionExpired);
     };
   }, [isAdmin]);
@@ -273,25 +300,28 @@ export default function AdminPortal({
     try {
       const success = await verifyAdminPasscode(passcode);
       if (success) {
+        loginInputRef.current?.blur();
         setIsAdmin(true);
         setPasscode('');
-        setSessionRemaining(120);
-        showToast('Admin session unlocked! (Auto-logout in 2 min of inactivity)');
+        setSessionRemaining(getAdminSessionRemainingSeconds());
+        showToast('সিস্টেম আনলক হয়েছে!');
       } else {
-        setAuthError('Invalid Admin Passcode! Please enter the correct common passcode.');
+        setAuthError('সঠিক পাসকোড দিন (Invalid Passcode)।');
       }
     } catch (err) {
-      setAuthError('Network authentication error. Please retry.');
+      setAuthError('নেটওয়ার্ক ত্রুটি হয়েছে। আবার চেষ্টা করুন।');
     } finally {
       setIsVerifying(false);
     }
   };
 
-  // Logout / Lock session
+  // Logout / Lock session immediately (also ensures Master System Lock is ON)
   const handleLogout = () => {
+    const updated = setMasterSystemLock(true);
+    setSystemLocks(updated);
     logoutAdmin();
     setIsAdmin(false);
-    showToast('Admin session locked.');
+    showToast('সম্পূর্ণ সিস্টেম লক করা হয়েছে।');
   };
 
   // Export dataset backup
@@ -502,17 +532,7 @@ export default function AdminPortal({
     setIsBlogModalOpen(true);
   };
 
-  const handleSaveBlog = (blogData: Partial<BlogPost> & { title: string; content: string }) => {
-    upsertBlogPost(blogData);
-    showToast(`Article "${blogData.title}" saved.`);
-    setIsBlogModalOpen(false);
-    setEditingBlog(null);
-  };
-
-  // --------------------------------------------------------------------------
-  // BLOG LOCK SYSTEM HANDLERS
-  // --------------------------------------------------------------------------
-  const handleToggleBlogLock = (id: string) => {
+  const handleToggleBlogStatus = (id: string) => {
     const post = blogs.find(b => b.id === id);
     if (!post) return;
     const newStatus = post.status === 'Draft' ? 'Published' : 'Draft';
@@ -521,50 +541,45 @@ export default function AdminPortal({
       status: newStatus
     });
     setBlogs(getStoredBlogPosts());
-    showToast(`Article "${post.title.slice(0, 24)}..." is now ${newStatus === 'Draft' ? 'Locked (Draft)' : 'Public (Live)'}!`);
+    const label = (post.title || 'Post').slice(0, 24);
+    showToast(`"${label}" is now ${newStatus}!`);
   };
 
-  const handleBulkLockArticles = () => {
+  const handleBulkDraftArticles = () => {
     blogs.forEach(post => {
       upsertBlogPost({ ...post, status: 'Draft' });
     });
     setBlogs(getStoredBlogPosts());
-    showToast('All blog articles set to Locked (Draft).');
+    showToast('All blog posts moved to Draft.');
   };
 
-  const handleBulkUnlockArticles = () => {
+  const handleBulkPublishArticles = () => {
     blogs.forEach(post => {
       upsertBlogPost({ ...post, status: 'Published' });
     });
     setBlogs(getStoredBlogPosts());
-    showToast('All blog articles Published & Unlocked for visitors.');
+    showToast('All blog posts Published!');
   };
 
   // --------------------------------------------------------------------------
-  // CENTRALIZED SYSTEM LOCK HANDLERS (FOR EVERYTHING)
+  // UNIFIED SINGLE SYSTEM LOCK HANDLERS
   // --------------------------------------------------------------------------
-  const handleToggleLock = (key: keyof Omit<SystemLocks, 'lastModified'>, label: string) => {
-    const updated = toggleSystemLock(key);
-    setSystemLocks(updated);
-    showToast(`${label} is now ${updated[key] ? 'LOCKED' : 'UNLOCKED'}.`);
-  };
-
-  const handleLockAllSystems = () => {
+  const handleEnableSystemLock = () => {
     const updated = lockAllSystems();
     setSystemLocks(updated);
-    showToast('ALL systems have been LOCKED by Administrator.');
+    showToast('System Lock ON: পাসকোড প্রোটেকশন চালু হয়েছে।');
   };
 
-  const handleUnlockAllSystems = () => {
+  const handleDisableSystemLock = () => {
     const updated = unlockAllSystems();
     setSystemLocks(updated);
-    showToast('All systems have been UNLOCKED.');
+    showToast('System Lock OFF: সম্পূর্ণ সিস্টেম আনলক রাখা হয়েছে।');
   };
 
   const handleResetLocks = () => {
     const updated = resetSystemLocks();
     setSystemLocks(updated);
-    showToast('System locks reset to standard baseline.');
+    showToast('ডিফল্ট সিস্টেম লক চালু হয়েছে।');
   };
 
   // --------------------------------------------------------------------------
@@ -687,12 +702,14 @@ ${profile.title || PERSONAL_INFO.title}`;
   // Filtered Blogs
   const filteredBlogs = useMemo(() => {
     return blogs.filter(b => {
+      const q = blogSearch.toLowerCase();
       const matchSearch = blogSearch === '' ||
-        b.title.toLowerCase().includes(blogSearch.toLowerCase()) ||
-        b.description.toLowerCase().includes(blogSearch.toLowerCase()) ||
-        b.tags.some(t => t.toLowerCase().includes(blogSearch.toLowerCase()));
+        (b.title || '').toLowerCase().includes(q) ||
+        (b.description || '').toLowerCase().includes(q) ||
+        (b.content || '').toLowerCase().includes(q) ||
+        (b.tags || []).some(t => t.toLowerCase().includes(q));
       
-      const matchCategory = blogCategoryFilter === 'All' || b.category === blogCategoryFilter;
+      const matchCategory = blogCategoryFilter === 'All' || (b.category || '') === blogCategoryFilter;
       return matchSearch && matchCategory;
     });
   }, [blogs, blogSearch, blogCategoryFilter]);
@@ -701,50 +718,61 @@ ${profile.title || PERSONAL_INFO.title}`;
     return skills.reduce((acc, cat) => acc + cat.items.length, 0);
   }, [skills]);
 
-  const activeLocksCount = useMemo(() => {
-    let count = 0;
-    if (systemLocks.blogLocked) count++;
-    if (systemLocks.resumeLocked) count++;
-    if (systemLocks.coverLetterLocked) count++;
-    if (systemLocks.projectsLocked) count++;
-    if (systemLocks.experienceLocked) count++;
-    if (systemLocks.skillsLocked) count++;
-    if (systemLocks.profileLocked) count++;
-    return count;
-  }, [systemLocks]);
+  const isTouchDevice =
+    typeof window !== 'undefined' &&
+    ('ontouchstart' in window || navigator.maxTouchPoints > 0);
 
   // ============================================================================
-  // UNLOCKED VIEW OR PASSCODE GATE
+  // UNIFIED SINGLE SYSTEM LOCK GATE (MOBILE VIRTUAL KEYBOARD FRIENDLY)
   // ============================================================================
 
-  if (!isAdmin) {
+  if (!isAdmin && systemLocks.systemLocked) {
     return (
-      <div className="min-h-screen bg-[#0B0D12] text-white flex flex-col items-center justify-center p-4 relative font-sans">
+      <div
+        className={`min-h-[100dvh] bg-[#0B0D12] text-white flex flex-col items-center px-4 overflow-y-auto overscroll-contain relative font-sans transition-all ${
+          isKeyboardOpen
+            ? 'justify-start pt-4 pb-6'
+            : 'justify-center pt-20 pb-16'
+        }`}
+        style={
+          viewportHeight
+            ? {
+                minHeight: `${viewportHeight}px`,
+                paddingTop: isKeyboardOpen ? `${Math.max(12, viewportOffsetTop + 12)}px` : undefined,
+              }
+            : undefined
+        }
+      >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-[var(--color-accent)]/15 via-transparent to-transparent pointer-events-none" />
 
-        <div className="w-full max-w-md bg-[#12151C] border border-[var(--color-accent)]/30 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 relative z-10 animate-fadeIn">
+        <div className="w-full max-w-md bg-[#12151C] border border-[var(--color-accent)]/30 rounded-3xl p-5 sm:p-8 shadow-2xl space-y-5 relative z-10 animate-fadeIn">
           <button
+            type="button"
             onClick={onBack}
-            className="flex items-center space-x-1.5 text-xs font-mono text-[#9CA3AF] hover:text-white transition-colors cursor-pointer"
+            className="min-h-[40px] inline-flex items-center space-x-1.5 text-xs font-mono text-[#9CA3AF] hover:text-white transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Portfolio</span>
           </button>
 
-          <div className="text-center space-y-3 pt-2">
-            <div className="inline-flex p-3.5 rounded-2xl bg-[var(--color-accent)]/15 border border-[var(--color-accent)]/30 text-[var(--color-accent)]">
-              <Lock className="w-8 h-8" />
-            </div>
-            <h1 className="font-display font-extrabold text-2xl text-white">
-              Admin Authentication
+          <div className={`text-center ${isKeyboardOpen ? 'space-y-1.5' : 'space-y-3 pt-1'}`}>
+            {!isKeyboardOpen && (
+              <div className="inline-flex p-3.5 rounded-2xl bg-[var(--color-accent)]/15 border border-[var(--color-accent)]/30 text-[var(--color-accent)]">
+                <Lock className="w-7 h-7" />
+              </div>
+            )}
+            <h1 className="font-display font-extrabold text-xl sm:text-2xl text-white">
+              System Lock
             </h1>
-            <p className="text-xs font-mono text-[#9CA3AF] max-w-xs mx-auto leading-relaxed">
-              The Portfolio Admin Management System is restricted to admin only. Please enter the master admin passcode to view the admin management system.
-            </p>
+            {!isKeyboardOpen && (
+              <p className="text-xs font-mono text-[#9CA3AF] max-w-xs mx-auto leading-relaxed">
+                সম্পূর্ণ পোর্টফোলিও এবং ব্লগ একটিমাত্র সিস্টেম লকে সুরক্ষিত। কন্ট্রোল প্যানেল ও এডিটিং আনলক করতে পাসকোড দিন।
+              </p>
+            )}
           </div>
 
           {authError && (
-            <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono flex items-center gap-2">
+            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs font-mono flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
               <span>{authError}</span>
             </div>
@@ -755,56 +783,75 @@ ${profile.title || PERSONAL_INFO.title}`;
               <label className="text-xs font-mono text-[#D1D5DB] font-semibold flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <KeyRound className="w-3.5 h-3.5 text-[var(--color-accent)]" />
-                  Common Admin Passcode
+                  <span>System Passcode</span>
                 </span>
                 <span className="text-[10px] text-[#9CA3AF] font-mono bg-white/5 px-2 py-0.5 rounded border border-white/10 flex items-center gap-1">
                   <Lock className="w-3 h-3 text-[var(--color-accent)]" />
-                  <span>Security Protected</span>
+                  <span>Single Lock</span>
                 </span>
               </label>
-              <div className="relative">
+              <div className="relative flex items-center">
                 <input
-                  type={showPasscode ? "text" : "password"}
+                  ref={loginInputRef}
+                  type={showPasscode ? 'text' : 'password'}
                   value={passcode}
                   onChange={(e) => setPasscode(e.target.value)}
-                  placeholder="*****"
-                  autoFocus
+                  onFocus={(e) => {
+                    const target = e.currentTarget;
+                    setTimeout(() => {
+                      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 150);
+                  }}
+                  placeholder="Enter passcode..."
+                  autoFocus={!isTouchDevice}
+                  autoComplete="current-password"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  enterKeyHint="go"
                   required
                   disabled={isVerifying}
-                  className="w-full pl-4 pr-12 py-3 rounded-xl bg-white/[0.05] border border-white/20 text-sm font-mono text-white placeholder:text-white/30 focus:border-[var(--color-accent)] focus:outline-none transition-all"
+                  className="w-full min-h-[48px] pl-4 pr-12 py-3 rounded-xl bg-white/[0.06] border border-white/20 text-base font-mono text-white placeholder:text-white/35 focus:border-[var(--color-accent)] focus:outline-none transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPasscode(!showPasscode)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-[#9CA3AF] hover:text-white transition-colors cursor-pointer"
-                  title={showPasscode ? "Hide Passcode" : "Show Passcode"}
+                  className="absolute right-1.5 w-11 h-11 rounded-lg flex items-center justify-center text-[#9CA3AF] hover:text-white transition-colors cursor-pointer"
+                  title={showPasscode ? 'Hide Passcode' : 'Show Passcode'}
+                  aria-label={showPasscode ? 'Hide Passcode' : 'Show Passcode'}
                 >
-                  {showPasscode ? <Eye className="w-4 h-4 text-[var(--color-accent)]" /> : <Lock className="w-4 h-4" />}
+                  {showPasscode ? (
+                    <EyeOff className="w-4 h-4 text-[var(--color-accent)]" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
                 </button>
               </div>
             </div>
 
             <button
               type="submit"
-              disabled={isVerifying}
-              className="shimmer w-full py-3.5 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-mono text-xs font-bold shadow-lg shadow-[var(--color-accent)]/25 cursor-pointer flex items-center justify-center space-x-2 transition-all disabled:opacity-50"
+              disabled={isVerifying || !passcode.trim()}
+              className="shimmer w-full min-h-[48px] py-3.5 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-black font-mono text-sm font-bold shadow-lg shadow-[var(--color-accent)]/25 cursor-pointer flex items-center justify-center space-x-2 transition-all disabled:opacity-50"
             >
               {isVerifying ? (
-                <span>Verifying Passcode...</span>
+                <span>Unlocking...</span>
               ) : (
                 <>
                   <ShieldCheck className="w-4 h-4" />
-                  <span>Login & View Admin System</span>
+                  <span>Unlock System</span>
                 </>
               )}
             </button>
           </form>
 
-          <div className="pt-2 border-t border-white/10 text-center">
-            <span className="text-[11px] font-mono text-[#9CA3AF]">
-              Restricted to Portfolio Owner & Authorized Administrator
-            </span>
-          </div>
+          {!isKeyboardOpen && (
+            <div className="pt-2 border-t border-white/10 text-center">
+              <span className="text-[11px] font-mono text-[#9CA3AF]">
+                Unified System Lock • Mobile Keyboard Friendly
+              </span>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -906,25 +953,27 @@ ${profile.title || PERSONAL_INFO.title}`;
               <span>Color View</span>
             </button>
 
-            <div 
-              className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border text-xs font-mono transition-colors ${
-                sessionRemaining <= 30
-                  ? 'bg-rose-500/15 border-rose-500/40 text-rose-300 animate-pulse'
-                  : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
-              }`}
-              title="Admin CMS automatically logs out after 2 minutes of inactivity. Any interaction resets the countdown."
-            >
-              <Clock className="w-3.5 h-3.5 text-amber-400" />
-              <span>Auto-Logout: <strong className="font-bold">{formatTimer(sessionRemaining)}</strong></span>
-            </div>
+            {isAdmin && (
+              <div 
+                className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border text-xs font-mono transition-colors ${
+                  sessionRemaining <= 60
+                    ? 'bg-rose-500/15 border-rose-500/40 text-rose-300 animate-pulse'
+                    : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                }`}
+                title="Admin session auto-locks after 15 minutes of inactivity."
+              >
+                <Clock className="w-3.5 h-3.5 text-amber-400" />
+                <span>Session: <strong className="font-bold">{formatTimer(sessionRemaining)}</strong></span>
+              </div>
+            )}
 
             <button
               onClick={handleLogout}
               className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-mono transition-colors cursor-pointer"
-              title="Logout and Hide Portfolio Admin Management System"
+              title="Lock Entire System Immediately"
             >
               <Lock className="w-3.5 h-3.5" />
-              <span>Logout</span>
+              <span>Lock System</span>
             </button>
           </div>
         </div>
@@ -947,7 +996,7 @@ ${profile.title || PERSONAL_INFO.title}`;
               {projects.length}
             </div>
             <div className="text-[10px] font-mono text-[var(--color-accent)] mt-0.5 truncate">
-              {systemLocks.projectsLocked ? '🔒 Locked' : 'Showcases'}
+              Showcases
             </div>
           </div>
 
@@ -967,7 +1016,7 @@ ${profile.title || PERSONAL_INFO.title}`;
               {experiences.length}
             </div>
             <div className="text-[10px] font-mono text-blue-400 mt-0.5 truncate">
-              {systemLocks.experienceLocked ? '🔒 Locked' : 'Career Roles'}
+              Career Roles
             </div>
           </div>
 
@@ -987,7 +1036,7 @@ ${profile.title || PERSONAL_INFO.title}`;
               {totalSkillItems}
             </div>
             <div className="text-[10px] font-mono text-emerald-400 mt-0.5 truncate">
-              {systemLocks.skillsLocked ? '🔒 Locked' : `${skills.length} Cats`}
+              {`${skills.length} Cats`}
             </div>
           </div>
 
@@ -1000,14 +1049,14 @@ ${profile.title || PERSONAL_INFO.title}`;
             }`}
           >
             <div className="flex items-center justify-between text-[11px] font-mono text-[#9CA3AF]">
-              <span>EDUCATION BLOG</span>
-              <Lock className="w-3.5 h-3.5 text-purple-400" />
+              <span>BLOG POSTS</span>
+              <BookOpen className="w-3.5 h-3.5 text-purple-400" />
             </div>
             <div className="text-xl font-display font-extrabold text-white mt-1">
               {blogs.length}
             </div>
             <div className="text-[10px] font-mono text-purple-400 mt-0.5 truncate">
-              {systemLocks.blogLocked ? '🔒 Strictly Locked' : 'Active'}
+              Direct Photo
             </div>
           </div>
 
@@ -1027,7 +1076,7 @@ ${profile.title || PERSONAL_INFO.title}`;
               96%
             </div>
             <div className="text-[10px] font-mono text-rose-400 mt-0.5 truncate">
-              {systemLocks.resumeLocked ? '🔒 Admin Locked' : 'ATS CV'}
+              ATS CV
             </div>
           </div>
 
@@ -1044,10 +1093,10 @@ ${profile.title || PERSONAL_INFO.title}`;
               <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
             </div>
             <div className="text-xl font-display font-extrabold text-white mt-1">
-              AI Suite
+              Studio
             </div>
             <div className="text-[10px] font-mono text-indigo-400 mt-0.5 truncate">
-              {systemLocks.coverLetterLocked ? '🔒 Admin Locked' : 'Tailored'}
+              Tailored
             </div>
           </div>
 
@@ -1067,7 +1116,7 @@ ${profile.title || PERSONAL_INFO.title}`;
               {profile.experienceYears}
             </div>
             <div className="text-[10px] font-mono text-cyan-400 mt-0.5 truncate">
-              {systemLocks.profileLocked ? '🔒 Locked' : 'Headline'}
+              Photo & Bio
             </div>
           </div>
 
@@ -1080,14 +1129,14 @@ ${profile.title || PERSONAL_INFO.title}`;
             }`}
           >
             <div className="flex items-center justify-between text-[11px] font-mono text-[#9CA3AF]">
-              <span>LOCK SYSTEM</span>
+              <span>SYSTEM LOCK</span>
               <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
             </div>
             <div className="text-xl font-display font-extrabold text-white mt-1">
-              {activeLocksCount}/7
+              {systemLocks.systemLocked ? 'ON' : 'OFF'}
             </div>
             <div className="text-[10px] font-mono text-amber-400 mt-0.5 truncate">
-              {activeLocksCount > 0 ? 'Guards Active' : 'All Open'}
+              {systemLocks.systemLocked ? 'Single Guard' : 'Open Mode'}
             </div>
           </div>
         </div>
@@ -1098,13 +1147,12 @@ ${profile.title || PERSONAL_INFO.title}`;
             onClick={() => setActiveTab('projects')}
             className={`px-4 py-2.5 rounded-xl font-mono text-xs font-bold transition-all flex items-center space-x-2 shrink-0 cursor-pointer ${
               activeTab === 'projects'
-                ? 'bg-[var(--color-accent)] text-white shadow-md shadow-[var(--color-accent)]/25'
+                ? 'bg-[var(--color-accent)] text-black shadow-md shadow-[var(--color-accent)]/25'
                 : 'bg-white/5 text-[#D1D5DB] hover:bg-white/10 hover:text-white'
             }`}
           >
             <Layers className="w-4 h-4" />
             <span>Projects ({projects.length})</span>
-            {systemLocks.projectsLocked && <Lock className="w-3 h-3 text-amber-400" />}
           </button>
 
           <button
@@ -1117,7 +1165,6 @@ ${profile.title || PERSONAL_INFO.title}`;
           >
             <Briefcase className="w-4 h-4" />
             <span>Experience ({experiences.length})</span>
-            {systemLocks.experienceLocked && <Lock className="w-3 h-3 text-amber-400" />}
           </button>
 
           <button
@@ -1130,7 +1177,6 @@ ${profile.title || PERSONAL_INFO.title}`;
           >
             <Zap className="w-4 h-4" />
             <span>Skills ({skills.length} Cats)</span>
-            {systemLocks.skillsLocked && <Lock className="w-3 h-3 text-amber-400" />}
           </button>
 
           <button
@@ -1154,8 +1200,7 @@ ${profile.title || PERSONAL_INFO.title}`;
             }`}
           >
             <BookOpen className="w-4 h-4" />
-            <span>Blogs & Lock ({blogs.length})</span>
-            {systemLocks.blogLocked && <Lock className="w-3 h-3 text-amber-400" />}
+            <span>Blogs ({blogs.length})</span>
           </button>
 
           <button
@@ -1168,7 +1213,6 @@ ${profile.title || PERSONAL_INFO.title}`;
           >
             <FileText className="w-4 h-4" />
             <span>Resume & ATS</span>
-            {systemLocks.resumeLocked && <Lock className="w-3 h-3 text-rose-300" />}
           </button>
 
           <button
@@ -1181,7 +1225,6 @@ ${profile.title || PERSONAL_INFO.title}`;
           >
             <Sparkles className="w-4 h-4" />
             <span>Cover Letter Suite</span>
-            {systemLocks.coverLetterLocked && <Lock className="w-3 h-3 text-indigo-300" />}
           </button>
 
           <button
@@ -1194,7 +1237,6 @@ ${profile.title || PERSONAL_INFO.title}`;
           >
             <User className="w-4 h-4" />
             <span>Profile & Bio</span>
-            {systemLocks.profileLocked && <Lock className="w-3 h-3 text-amber-400" />}
           </button>
 
           <button
@@ -1206,9 +1248,9 @@ ${profile.title || PERSONAL_INFO.title}`;
             }`}
           >
             <ShieldCheck className="w-4 h-4" />
-            <span>Security & Lock System</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-400/20 text-amber-300 font-mono">
-              {activeLocksCount}
+            <span>System Lock</span>
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-400/20 text-amber-300 font-mono">
+              {systemLocks.systemLocked ? 'ON' : 'OFF'}
             </span>
           </button>
         </div>
@@ -1293,27 +1335,36 @@ ${profile.title || PERSONAL_INFO.title}`;
                       key={project.id}
                       className="group bg-[#12151C] border border-white/10 hover:border-white/20 rounded-2xl p-5 transition-all shadow-md hover:shadow-xl space-y-4"
                     >
-                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                        <div className="space-y-1.5 flex-grow">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-mono uppercase font-bold tracking-wider ${
-                              project.type === 'Teaching'
-                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                                : project.type === 'Media'
-                                ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
-                                : project.type === 'Presentation'
-                                ? 'bg-purple-500/10 text-purple-400 border border-purple-500/30'
-                                : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                            }`}>
-                              {project.type}
-                            </span>
-                            <h3 className="font-display font-bold text-lg text-white group-hover:text-[var(--color-accent)] transition-colors">
-                              {project.title}
-                            </h3>
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                        <div className="flex items-start gap-4 flex-grow">
+                          {project.image && (
+                            <img
+                              src={project.image}
+                              alt={project.title}
+                              className="w-20 h-20 rounded-xl object-cover border border-white/15 shrink-0 bg-black/40"
+                            />
+                          )}
+                          <div className="space-y-1.5 flex-grow">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-mono uppercase font-bold tracking-wider ${
+                                project.type === 'Teaching'
+                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                                  : project.type === 'Media'
+                                  ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
+                                  : project.type === 'Presentation'
+                                  ? 'bg-purple-500/10 text-purple-400 border border-purple-500/30'
+                                  : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                              }`}>
+                                {project.type}
+                              </span>
+                              <h3 className="font-display font-bold text-lg text-white group-hover:text-[var(--color-accent)] transition-colors">
+                                {project.title}
+                              </h3>
+                            </div>
+                            <p className="text-xs text-[#D1D5DB] font-light leading-relaxed max-w-3xl">
+                              {project.description}
+                            </p>
                           </div>
-                          <p className="text-xs text-[#D1D5DB] font-light leading-relaxed max-w-3xl">
-                            {project.description}
-                          </p>
                         </div>
 
                         {/* Actions */}
@@ -1694,95 +1745,53 @@ ${profile.title || PERSONAL_INFO.title}`;
         )}
 
         {/* ==================================================================== */}
-        {/* TAB 4: BLOGS MANAGEMENT (CRUD) */}
+        {/* TAB 4: BLOGS MANAGEMENT (DIRECT IMAGE UPLOAD + ZERO MANDATORY FIELDS) */}
         {/* ==================================================================== */}
         {activeTab === 'blogs' && (
           <div className="space-y-6 animate-fadeIn">
-            {/* Blog Section Lock & Security System Panel */}
-            <div className="p-5 rounded-2xl bg-[#12151C] border border-purple-500/30 shadow-xl space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-400">
-                    <Lock className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-display font-bold text-white text-base">
-                        Blog Section Lock System
-                      </h3>
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold flex items-center gap-1 ${
-                        isBlogLockStrict
-                          ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
-                          : 'bg-amber-500/10 border border-amber-500/30 text-amber-400'
-                      }`}>
-                        <ShieldCheck className="w-3 h-3" />
-                        <span>{isBlogLockStrict ? 'Strict Admin Lock: Active' : 'Unrestricted Mode'}</span>
-                      </span>
-                    </div>
-                    <p className="text-xs font-mono text-[#9CA3AF] mt-0.5">
-                      Restricts article creation, deletion, and editing exclusively to the authenticated admin.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    onClick={() => {
-                      setIsBlogLockStrict(!isBlogLockStrict);
-                      showToast(isBlogLockStrict ? 'Blog Section Lock relaxed.' : 'Blog Section Strict Admin Lock enforced!');
-                    }}
-                    className={`px-3 py-1.5 rounded-xl font-mono text-xs font-bold border transition-colors cursor-pointer flex items-center gap-1.5 ${
-                      isBlogLockStrict
-                        ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25'
-                        : 'bg-white/5 border-white/10 text-[#D1D5DB] hover:text-white'
-                    }`}
-                  >
-                    {isBlogLockStrict ? <Lock className="w-3.5 h-3.5 text-emerald-400" /> : <Unlock className="w-3.5 h-3.5 text-amber-400" />}
-                    <span>{isBlogLockStrict ? 'Lock Enforced' : 'Enable Strict Lock'}</span>
-                  </button>
-
-                  <button
-                    onClick={handleBulkLockArticles}
-                    className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-[#D1D5DB] hover:text-white border border-white/10 font-mono text-xs transition-colors cursor-pointer flex items-center gap-1.5"
-                    title="Lock all articles into Draft/Protected state"
-                  >
-                    <Lock className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Lock All as Draft</span>
-                  </button>
-
-                  <button
-                    onClick={handleBulkUnlockArticles}
-                    className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-[#D1D5DB] hover:text-white border border-white/10 font-mono text-xs transition-colors cursor-pointer flex items-center gap-1.5"
-                    title="Publish and unlock all articles for public view"
-                  >
-                    <Unlock className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Publish & Unlock All</span>
-                  </button>
-
-                  <a
-                    href="/blog"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 font-mono text-xs transition-colors cursor-pointer flex items-center gap-1.5"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    <span>Verify Blog Public View</span>
-                  </a>
-                </div>
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#12151C] border border-purple-500/30 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-1">
+                <h3 className="font-display font-bold text-white text-base flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-purple-400" />
+                  <span>Blog & Photo Posts Manager</span>
+                </h3>
+                <p className="text-xs font-mono text-[#9CA3AF]">
+                  কভার ছবি, পোস্টের ভেতরের ছবি এবং অথর প্রোফাইল ছবি সরাসরি ফোন বা কম্পিউটার থেকে আপলোড করা যাবে। কোনো ফিল্ড বাধ্যতামূলক নয়।
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <button
+                  onClick={handleBulkPublishArticles}
+                  className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-[#D1D5DB] hover:text-white border border-white/10 font-mono text-xs transition-colors cursor-pointer"
+                >
+                  Publish All
+                </button>
+                <button
+                  onClick={handleBulkDraftArticles}
+                  className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-[#D1D5DB] hover:text-white border border-white/10 font-mono text-xs transition-colors cursor-pointer"
+                >
+                  Draft All
+                </button>
+                <button
+                  onClick={() => navigateTo('/blog')}
+                  className="px-3 py-2 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 font-mono text-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Open Blog Page</span>
+                </button>
               </div>
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex flex-wrap items-center gap-3 flex-grow">
-                {/* Search Bar */}
-                <div className="relative min-w-[240px] max-w-xs flex-grow">
+                <div className="relative min-w-[220px] max-w-xs flex-grow">
                   <Search className="w-4 h-4 text-[#9CA3AF] absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     value={blogSearch}
                     onChange={(e) => setBlogSearch(e.target.value)}
-                    placeholder="Search articles..."
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#12151C] border border-white/10 text-xs font-mono text-white placeholder:text-white/30 focus:border-purple-500 focus:outline-none"
+                    placeholder="Search posts..."
+                    className="w-full min-h-[44px] pl-10 pr-4 py-2.5 rounded-xl bg-[#12151C] border border-white/10 text-base sm:text-xs font-mono text-white placeholder:text-white/30 focus:border-purple-500 focus:outline-none"
                   />
                   {blogSearch && (
                     <button
@@ -1794,7 +1803,6 @@ ${profile.title || PERSONAL_INFO.title}`;
                   )}
                 </div>
 
-                {/* Filter Category */}
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
                   {['All', 'English Pedagogy', 'Educational Media', 'Lesson Design', 'Classroom Leadership', 'Academic Growth'].map((cat) => (
                     <button
@@ -1812,120 +1820,133 @@ ${profile.title || PERSONAL_INFO.title}`;
                 </div>
               </div>
 
-              {/* Add Blog CTA */}
               <button
                 onClick={handleOpenAddBlog}
-                className="shimmer inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-mono text-xs font-bold shadow-lg shadow-purple-600/20 transition-all hover:scale-105 cursor-pointer shrink-0"
+                className="min-h-[44px] shimmer inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-mono text-xs font-bold shadow-lg shadow-purple-600/20 transition-all hover:scale-105 cursor-pointer shrink-0"
               >
                 <Plus className="w-4 h-4" />
-                <span>Create New Article</span>
+                <span>Create New Post</span>
               </button>
             </div>
 
-            {/* Blogs List */}
             {filteredBlogs.length === 0 ? (
               <div className="p-12 text-center rounded-3xl bg-[#12151C] border border-white/10 space-y-3">
                 <BookOpen className="w-8 h-8 text-[#9CA3AF] mx-auto" />
-                <h3 className="font-display font-bold text-lg text-white">No articles found</h3>
+                <h3 className="font-display font-bold text-lg text-white">No posts found</h3>
                 <p className="text-xs font-mono text-[#9CA3AF] max-w-sm mx-auto">
-                  Create articles about teaching, classroom practice, and educational media.
+                  Upload photos or write a blog post with zero mandatory fields.
                 </p>
                 <button
                   onClick={handleOpenAddBlog}
                   className="inline-flex items-center space-x-1.5 text-xs font-mono text-purple-400 hover:underline pt-2 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Write Article</span>
+                  <span>Create Post</span>
                 </button>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4">
-                {filteredBlogs.map((post) => (
-                  <div
-                    key={post.id}
-                    className="bg-[#12151C] border border-white/10 hover:border-white/20 rounded-2xl p-5 transition-all shadow-md space-y-4"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                      <div className="flex items-start gap-4 flex-grow">
-                        {post.coverImage && (
-                          <img
-                            src={post.coverImage}
-                            alt={post.title}
-                            className="w-20 h-20 rounded-xl object-cover border border-white/10 shrink-0 hidden sm:block"
-                          />
-                        )}
-                        <div className="space-y-1.5">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-mono bg-purple-500/10 text-purple-400 border border-purple-500/30 font-bold uppercase">
-                              {post.category}
-                            </span>
-                            <span className="text-xs font-mono text-[#9CA3AF]">
-                              {post.readingTime}
-                            </span>
-                            <button
-                              onClick={() => handleToggleBlogLock(post.id)}
-                              className={`px-2.5 py-0.5 rounded text-[10px] font-mono border transition-all cursor-pointer flex items-center gap-1 ${
-                                post.status === 'Draft' 
-                                  ? 'bg-amber-500/15 text-amber-300 border-amber-500/30 hover:bg-amber-500/25' 
-                                  : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/25'
-                              }`}
-                              title={post.status === 'Draft' ? 'Status: Locked (Draft) - Click to Unlock & Publish' : 'Status: Public (Live) - Click to Lock as Draft'}
-                            >
-                              {post.status === 'Draft' ? <Lock className="w-3 h-3 text-amber-400" /> : <Unlock className="w-3 h-3 text-emerald-400" />}
-                              <span>{post.status === 'Draft' ? 'Locked (Draft)' : 'Public (Live)'}</span>
-                            </button>
-                          </div>
+                {filteredBlogs.map((post) => {
+                  const previewThumb =
+                    post.coverImage ||
+                    (post.inlineImages ? Object.values(post.inlineImages)[0] : '');
+                  const snippet =
+                    post.description ||
+                    (post.content ? post.content.replace(/!\[[^\]]*\]\([^)]+\)/g, '').slice(0, 150) : '');
 
-                          <h4 className="font-display font-bold text-lg text-white hover:text-purple-400 transition-colors">
-                            {post.title}
-                          </h4>
+                  return (
+                    <div
+                      key={post.id}
+                      className="bg-[#12151C] border border-white/10 hover:border-white/20 rounded-2xl p-5 transition-all shadow-md space-y-4"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                        <div className="flex items-start gap-4 flex-grow">
+                          {previewThumb && (
+                            <img
+                              src={previewThumb}
+                              alt={post.title || 'Post photo'}
+                              className="w-20 h-20 rounded-xl object-cover border border-white/10 shrink-0"
+                            />
+                          )}
+                          <div className="space-y-1.5 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              {post.category && (
+                                <span className="px-2.5 py-0.5 rounded-md text-[10px] font-mono bg-purple-500/10 text-purple-400 border border-purple-500/30 font-bold uppercase">
+                                  {post.category}
+                                </span>
+                              )}
+                              {post.readingTime && (
+                                <span className="text-xs font-mono text-[#9CA3AF]">
+                                  {post.readingTime}
+                                </span>
+                              )}
+                              <button
+                                onClick={() => handleToggleBlogStatus(post.id)}
+                                className={`px-2.5 py-0.5 rounded text-[10px] font-mono border transition-all cursor-pointer flex items-center gap-1 ${
+                                  post.status === 'Draft'
+                                    ? 'bg-amber-500/15 text-amber-300 border-amber-500/30 hover:bg-amber-500/25'
+                                    : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/25'
+                                }`}
+                                title="Click to toggle Published / Draft"
+                              >
+                                <span>{post.status === 'Draft' ? 'Draft' : 'Published'}</span>
+                              </button>
+                            </div>
 
-                          <p className="text-xs text-[#D1D5DB] font-light leading-relaxed max-w-3xl line-clamp-2">
-                            {post.description || post.content.slice(0, 150)}...
-                          </p>
+                            {post.title && (
+                              <h4 className="font-display font-bold text-lg text-white hover:text-purple-400 transition-colors">
+                                {post.title}
+                              </h4>
+                            )}
 
-                          <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                            {post.tags.map((tag, tIdx) => (
-                              <span key={tIdx} className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] font-mono text-[#9CA3AF]">
-                                #{tag}
+                            {snippet && (
+                              <p className="text-xs text-[#D1D5DB] font-light leading-relaxed max-w-3xl line-clamp-2">
+                                {snippet}
+                              </p>
+                            )}
+
+                            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                              {(post.tags || []).map((tag, tIdx) => (
+                                <span key={tIdx} className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] font-mono text-[#9CA3AF]">
+                                  #{tag}
+                                </span>
+                              ))}
+                              <span className="text-[10px] font-mono text-[#9CA3AF]">
+                                /blog/{post.slug}
                               </span>
-                            ))}
-                            <span className="text-[10px] font-mono text-[#9CA3AF] ml-2">
-                              Slug: /blog/{post.slug}
-                            </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Actions */}
-                      <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-start">
-                        <button
-                          onClick={() => window.open(`/blog/${post.slug}`, '_blank')}
-                          className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-[#D1D5DB] hover:text-white transition-colors cursor-pointer border border-white/10"
-                          title="Preview Article in Browser"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-start">
+                          <button
+                            onClick={() => navigateTo(`/blog/${post.slug}`)}
+                            className="p-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-[#D1D5DB] hover:text-white transition-colors cursor-pointer border border-white/10"
+                            title="View Post"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </button>
 
-                        <button
-                          onClick={() => handleOpenEditBlog(post)}
-                          className="p-2 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 transition-colors cursor-pointer border border-purple-500/20"
-                          title="Edit Article"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
+                          <button
+                            onClick={() => handleOpenEditBlog(post)}
+                            className="p-2.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 transition-colors cursor-pointer border border-purple-500/20"
+                            title="Edit Post"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
 
-                        <button
-                          onClick={() => setConfirmDelete({ type: 'blog', id: post.id, title: post.title })}
-                          className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors cursor-pointer border border-red-500/20"
-                          title="Delete Article"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                          <button
+                            onClick={() => setConfirmDelete({ type: 'blog', id: post.id, title: post.title || 'Post' })}
+                            className="p-2.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors cursor-pointer border border-red-500/20"
+                            title="Delete Post"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -2480,22 +2501,19 @@ ${profile.title || PERSONAL_INFO.title}`;
                 </div>
               </div>
 
-              {/* Avatar and Location */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono text-[#D1D5DB] font-semibold flex items-center justify-between">
-                    <span>Avatar Image URL / Path</span>
-                    <span className="text-[10px] text-[#9CA3AF]">e.g. /images/lima.jpeg</span>
-                  </label>
-                  <input
-                    type="text"
+              {/* Profile Avatar Direct Upload and Location */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                <div className="lg:col-span-7">
+                  <ImageUploadInput
+                    label="Profile Photo (Direct Upload)"
+                    variant="avatar"
                     value={profile.avatar}
-                    onChange={(e) => setProfile({ ...profile, avatar: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-xs font-mono text-white focus:border-cyan-400 focus:outline-none"
+                    onChange={(val) => setProfile({ ...profile, avatar: val || '/images/lima.jpeg' })}
+                    placeholder="/images/lima.jpeg"
                   />
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="lg:col-span-5 space-y-1.5">
                   <label className="text-xs font-mono text-[#D1D5DB] font-semibold flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-cyan-400" />
                     Location
@@ -2504,7 +2522,7 @@ ${profile.title || PERSONAL_INFO.title}`;
                     type="text"
                     value={profile.location}
                     onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-xs font-mono text-white focus:border-cyan-400 focus:outline-none"
+                    className="w-full min-h-[44px] px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-base sm:text-xs font-mono text-white focus:border-cyan-400 focus:outline-none"
                   />
                 </div>
               </div>
@@ -2736,361 +2754,74 @@ ${profile.title || PERSONAL_INFO.title}`;
               </div>
             </div>
 
-            {/* Master Lock Banner & 1-Click Operations */}
+            {/* Unified Single System Lock Control Panel */}
             <div className="bg-[#12151C] border border-amber-500/30 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-white/10">
                 <div className="flex items-start space-x-4">
-                  <div className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400">
+                  <div className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 shrink-0">
                     <ShieldCheck className="w-7 h-7" />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     <div className="flex flex-wrap items-center gap-2.5">
                       <h3 className="font-display font-bold text-xl sm:text-2xl text-white">
-                        Security & Master Lock System
+                        Unified Single System Lock
                       </h3>
                       <span className={`px-3 py-1 rounded-full text-xs font-mono font-bold flex items-center gap-1.5 ${
-                        activeLocksCount > 0 
-                          ? 'bg-amber-500/15 border border-amber-500/30 text-amber-300' 
+                        systemLocks.systemLocked
+                          ? 'bg-amber-500/15 border border-amber-500/30 text-amber-300'
                           : 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300'
                       }`}>
-                        <Lock className="w-3.5 h-3.5" />
-                        <span>{activeLocksCount} of 7 Systems Guarded</span>
+                        {systemLocks.systemLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                        <span>{systemLocks.systemLocked ? 'System Lock: ON (Protected)' : 'System Lock: OFF (Unlocked)'}</span>
                       </span>
                     </div>
                     <p className="text-xs font-mono text-[#9CA3AF] max-w-2xl leading-relaxed">
-                      Centralized administrative lock controls for the portfolio blog, CV builder, cover-letter studio, and profile content.
+                      আলাদা আলাদা লকের বদলে সম্পূর্ণ সিস্টেমে (পোর্টফোলিও ছবি ও তথ্য, ব্লগ পোস্ট, সিভি বিল্ডার, কভার লেটার এবং অ্যাডমিন প্যানেল) এখন একটিমাত্র কেন্দ্রীয় লক সিস্টেম কাজ করে।
                     </p>
                   </div>
                 </div>
 
-                {/* 1-Click Master Control Buttons */}
+                {/* Single Master Lock Toggle Buttons */}
                 <div className="flex flex-wrap items-center gap-2.5 shrink-0">
                   <button
-                    onClick={handleLockAllSystems}
-                    className="shimmer inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-mono text-xs font-bold shadow-lg shadow-red-600/25 transition-all hover:scale-105 cursor-pointer"
-                    title="Lock all 7 systems down immediately"
+                    onClick={handleEnableSystemLock}
+                    className={`min-h-[44px] inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer border ${
+                      systemLocks.systemLocked
+                        ? 'bg-amber-500 text-black border-amber-400 shadow-lg shadow-amber-500/20'
+                        : 'bg-white/5 hover:bg-white/10 text-[#D1D5DB] border-white/15'
+                    }`}
                   >
                     <Lock className="w-4 h-4" />
-                    <span>Emergency Lock All</span>
+                    <span>System Lock ON</span>
                   </button>
 
                   <button
-                    onClick={handleUnlockAllSystems}
-                    className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold shadow-lg shadow-emerald-600/25 transition-all hover:scale-105 cursor-pointer"
-                    title="Unlock all systems for full access"
+                    onClick={handleDisableSystemLock}
+                    className={`min-h-[44px] inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer border ${
+                      !systemLocks.systemLocked
+                        ? 'bg-emerald-500 text-black border-emerald-400 shadow-lg shadow-emerald-500/20'
+                        : 'bg-white/5 hover:bg-white/10 text-[#D1D5DB] border-white/15'
+                    }`}
                   >
                     <Unlock className="w-4 h-4" />
-                    <span>Unlock All Systems</span>
-                  </button>
-
-                  <button
-                    onClick={handleResetLocks}
-                    className="inline-flex items-center space-x-1.5 px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-[#D1D5DB] hover:text-white border border-white/10 font-mono text-xs transition-colors cursor-pointer"
-                    title="Reset to recommended security baseline"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    <span>Baseline Defaults</span>
+                    <span>System Lock OFF</span>
                   </button>
                 </div>
               </div>
 
-              {/* Modular Lock Control Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* Education blog section lock */}
-                <div className="p-5 rounded-2xl bg-white/[0.03] border border-purple-500/30 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-400">
-                        <BookOpen className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h4 className="font-display font-bold text-sm text-white">Education Blog Section Lock</h4>
-                        <span className="text-[10px] font-mono text-[#9CA3AF]">Teaching Articles & Publishing</span>
-                      </div>
-                    </div>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
-                      systemLocks.blogLocked ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30' : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
-                    }`}>
-                      {systemLocks.blogLocked ? 'LOCKED' : 'UNLOCKED'}
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-[#9CA3AF] font-light leading-relaxed">
-                    Controls public access to teaching articles and restricts draft publishing to verified administrators.
-                  </p>
-
-                  <div className="space-y-2 pt-1 border-t border-white/[0.06]">
-                    <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="text-[#D1D5DB]">Strict Admin Blog Lock</span>
-                      <button
-                        onClick={() => handleToggleLock('blogLocked', 'Education Blog Master Lock')}
-                        className={`px-3 py-1 rounded-lg font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
-                          systemLocks.blogLocked
-                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                            : 'bg-white/5 text-[#9CA3AF] border-white/10'
-                        }`}
-                      >
-                        {systemLocks.blogLocked ? <Lock className="w-3 h-3 text-amber-400" /> : <Unlock className="w-3 h-3" />}
-                        <span>{systemLocks.blogLocked ? 'Locked' : 'Open'}</span>
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="text-[#D1D5DB]">Public Visitor Browsing</span>
-                      <button
-                        onClick={() => handleToggleLock('blogPublicBrowsing', 'Public Blog Browsing')}
-                        className={`px-3 py-1 rounded-lg font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
-                          systemLocks.blogPublicBrowsing
-                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                            : 'bg-red-500/20 text-red-300 border-red-500/40'
-                        }`}
-                      >
-                        {systemLocks.blogPublicBrowsing ? <Check className="w-3 h-3 text-emerald-400" /> : <X className="w-3 h-3 text-red-400" />}
-                        <span>{systemLocks.blogPublicBrowsing ? 'Enabled' : 'Blocked'}</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 pt-2">
-                    <button
-                      onClick={handleBulkLockArticles}
-                      className="flex-1 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[11px] font-mono text-[#D1D5DB] border border-white/10 transition-colors cursor-pointer"
-                    >
-                      Lock All as Draft
-                    </button>
-                    <button
-                      onClick={handleBulkUnlockArticles}
-                      className="flex-1 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[11px] font-mono text-[#D1D5DB] border border-white/10 transition-colors cursor-pointer"
-                    >
-                      Unlock All Posts
-                    </button>
-                  </div>
-                </div>
-
-                {/* LOCK CARD 2: ATS RESUME SUITE LOCK */}
-                <div className="p-5 rounded-2xl bg-white/[0.03] border border-rose-500/30 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400">
-                        <FileText className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h4 className="font-display font-bold text-sm text-white">ATS Resume Suite Lock</h4>
-                        <span className="text-[10px] font-mono text-[#9CA3AF]">Curriculum Vitae Generation</span>
-                      </div>
-                    </div>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
-                      systemLocks.resumeLocked ? 'bg-rose-500/15 text-rose-300 border border-rose-500/30' : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
-                    }`}>
-                      {systemLocks.resumeLocked ? 'ADMIN ONLY' : 'PUBLIC'}
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-[#9CA3AF] font-light leading-relaxed">
-                    Restricts ATS Resume Builder access and PDF downloads to the verified admin via common passcode challenge.
-                  </p>
-
-                  <div className="space-y-2 pt-1 border-t border-white/[0.06]">
-                    <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="text-[#D1D5DB]">Passcode Gate Protection</span>
-                      <button
-                        onClick={() => handleToggleLock('resumeLocked', 'Resume Builder Passcode Gate')}
-                        className={`px-3 py-1 rounded-lg font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
-                          systemLocks.resumeLocked
-                            ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
-                            : 'bg-white/5 text-[#9CA3AF] border-white/10'
-                        }`}
-                      >
-                        {systemLocks.resumeLocked ? <Lock className="w-3 h-3 text-rose-400" /> : <Unlock className="w-3 h-3" />}
-                        <span>{systemLocks.resumeLocked ? 'Admin Lock' : 'Public'}</span>
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="text-[#D1D5DB]">PDF Download & Export Lock</span>
-                      <button
-                        onClick={() => handleToggleLock('resumeDownloadLocked', 'Resume Download Lock')}
-                        className={`px-3 py-1 rounded-lg font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
-                          systemLocks.resumeDownloadLocked
-                            ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
-                            : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                        }`}
-                      >
-                        {systemLocks.resumeDownloadLocked ? <Lock className="w-3 h-3 text-rose-400" /> : <Unlock className="w-3 h-3 text-emerald-400" />}
-                        <span>{systemLocks.resumeDownloadLocked ? 'Locked' : 'Open'}</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="pt-2">
-                    {onOpenResumeBuilder && (
-                      <button
-                        onClick={onOpenResumeBuilder}
-                        className="w-full py-1.5 rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-[11px] font-mono transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                        <span>Open Resume Builder Modal</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* LOCK CARD 3: AI COVER LETTER SUITE LOCK */}
-                <div className="p-5 rounded-2xl bg-white/[0.03] border border-indigo-500/30 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400">
-                        <Sparkles className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h4 className="font-display font-bold text-sm text-white">AI Cover Letter Suite Lock</h4>
-                        <span className="text-[10px] font-mono text-[#9CA3AF]">Application Generator & Letters</span>
-                      </div>
-                    </div>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
-                      systemLocks.coverLetterLocked ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30' : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
-                    }`}>
-                      {systemLocks.coverLetterLocked ? 'ADMIN ONLY' : 'PUBLIC'}
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-[#9CA3AF] font-light leading-relaxed">
-                    Guards the AI cover letter generator, preventing unauthorized company targeting or letter exports.
-                  </p>
-
-                  <div className="space-y-2 pt-1 border-t border-white/[0.06]">
-                    <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="text-[#D1D5DB]">Passcode Gate Protection</span>
-                      <button
-                        onClick={() => handleToggleLock('coverLetterLocked', 'Cover Letter Passcode Gate')}
-                        className={`px-3 py-1 rounded-lg font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
-                          systemLocks.coverLetterLocked
-                            ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
-                            : 'bg-white/5 text-[#9CA3AF] border-white/10'
-                        }`}
-                      >
-                        {systemLocks.coverLetterLocked ? <Lock className="w-3 h-3 text-indigo-400" /> : <Unlock className="w-3 h-3" />}
-                        <span>{systemLocks.coverLetterLocked ? 'Admin Lock' : 'Public'}</span>
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="text-[#D1D5DB]">Letter Export & Copy Lock</span>
-                      <button
-                        onClick={() => handleToggleLock('coverLetterExportLocked', 'Cover Letter Export Lock')}
-                        className={`px-3 py-1 rounded-lg font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
-                          systemLocks.coverLetterExportLocked
-                            ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
-                            : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                        }`}
-                      >
-                        {systemLocks.coverLetterExportLocked ? <Lock className="w-3 h-3 text-indigo-400" /> : <Unlock className="w-3 h-3 text-emerald-400" />}
-                        <span>{systemLocks.coverLetterExportLocked ? 'Locked' : 'Open'}</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="pt-2">
-                    {onOpenCoverLetter && (
-                      <button
-                        onClick={onOpenCoverLetter}
-                        className="w-full py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-[11px] font-mono transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                        <span>Open Cover Letter Modal</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* LOCK CARD 4: PORTFOLIO CMS CONTENT PROTECTION LOCKS */}
-                <div className="p-5 rounded-2xl bg-white/[0.03] border border-blue-500/30 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400">
-                        <Layers className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h4 className="font-display font-bold text-sm text-white">Portfolio Content Locks</h4>
-                        <span className="text-[10px] font-mono text-[#9CA3AF]">Projects, Work, Skills, Profile</span>
-                      </div>
-                    </div>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-500/15 text-blue-300 border border-blue-500/30">
-                      CMS GUARDS
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-[#9CA3AF] font-light leading-relaxed">
-                    Prevent accidental modification, deletions, or external overrides on core portfolio data.
-                  </p>
-
-                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-white/[0.06]">
-                    <button
-                      onClick={() => handleToggleLock('projectsLocked', 'Projects Edit Lock')}
-                      className={`p-2.5 rounded-xl border text-xs font-mono flex items-center justify-between transition-all cursor-pointer ${
-                        systemLocks.projectsLocked 
-                          ? 'bg-amber-500/20 border-amber-500/40 text-amber-300' 
-                          : 'bg-white/5 border-white/10 text-[#D1D5DB]'
-                      }`}
-                    >
-                      <span>Projects</span>
-                      {systemLocks.projectsLocked ? <Lock className="w-3.5 h-3.5 text-amber-400" /> : <Unlock className="w-3.5 h-3.5 text-[#9CA3AF]" />}
-                    </button>
-
-                    <button
-                      onClick={() => handleToggleLock('experienceLocked', 'Experience Edit Lock')}
-                      className={`p-2.5 rounded-xl border text-xs font-mono flex items-center justify-between transition-all cursor-pointer ${
-                        systemLocks.experienceLocked 
-                          ? 'bg-amber-500/20 border-amber-500/40 text-amber-300' 
-                          : 'bg-white/5 border-white/10 text-[#D1D5DB]'
-                      }`}
-                    >
-                      <span>Experience</span>
-                      {systemLocks.experienceLocked ? <Lock className="w-3.5 h-3.5 text-amber-400" /> : <Unlock className="w-3.5 h-3.5 text-[#9CA3AF]" />}
-                    </button>
-
-                    <button
-                      onClick={() => handleToggleLock('skillsLocked', 'Skills Edit Lock')}
-                      className={`p-2.5 rounded-xl border text-xs font-mono flex items-center justify-between transition-all cursor-pointer ${
-                        systemLocks.skillsLocked 
-                          ? 'bg-amber-500/20 border-amber-500/40 text-amber-300' 
-                          : 'bg-white/5 border-white/10 text-[#D1D5DB]'
-                      }`}
-                    >
-                      <span>Skills</span>
-                      {systemLocks.skillsLocked ? <Lock className="w-3.5 h-3.5 text-amber-400" /> : <Unlock className="w-3.5 h-3.5 text-[#9CA3AF]" />}
-                    </button>
-
-                    <button
-                      onClick={() => handleToggleLock('profileLocked', 'Profile Edit Lock')}
-                      className={`p-2.5 rounded-xl border text-xs font-mono flex items-center justify-between transition-all cursor-pointer ${
-                        systemLocks.profileLocked 
-                          ? 'bg-amber-500/20 border-amber-500/40 text-amber-300' 
-                          : 'bg-white/5 border-white/10 text-[#D1D5DB]'
-                      }`}
-                    >
-                      <span>Profile</span>
-                      {systemLocks.profileLocked ? <Lock className="w-3.5 h-3.5 text-amber-400" /> : <Unlock className="w-3.5 h-3.5 text-[#9CA3AF]" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Passcode management guidance */}
+              {/* Single Unified Coverage Summary */}
               <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="text-xs font-mono text-[#D1D5DB] font-semibold flex items-center gap-2">
-                    <KeyRound className="w-3.5 h-3.5 text-[var(--color-accent)]" />
-                    <span>Administrator Passcode</span>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-xs font-mono text-white font-bold flex items-center gap-2">
+                    <KeyRound className="w-4 h-4 text-[var(--color-accent)]" />
+                    <span>One Passcode Controls Everything</span>
                   </div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3" />
-                    <span>Protected</span>
+                  <span className="text-[11px] font-mono text-emerald-400">
+                    Mobile Keyboard Friendly
                   </span>
                 </div>
-                <p className="text-[11px] font-mono text-[#9CA3AF] flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span>Passcodes are validated by the sign-in flow and are never displayed in this dashboard.</span>
+                <p className="text-xs text-[#9CA3AF] leading-relaxed">
+                  যখন <strong>System Lock ON</strong> থাকে, ভিজিটররা পোর্টফোলিও এবং পাবলিশ করা ব্লগ পড়তে পারবেন, কিন্তু ছবি আপলোড, ব্লগ তৈরি/এডিট, সিভি বা কভার লেটার জেনারেটর এবং অ্যাডমিন সেটিংস শুধুমাত্র আপনার পাসকোড দিয়ে আনলক হবে। একবার পাসকোড দিলে পুরো সিস্টেম একসাথে আনলক হয়ে যায়।
                 </p>
               </div>
 
@@ -3248,15 +2979,19 @@ ${profile.title || PERSONAL_INFO.title}`;
         </div>
       )}
 
-      {/* Blog Modal */}
-      {isBlogModalOpen && (
-        <BlogModal
-          isOpen={isBlogModalOpen}
-          initialBlog={editingBlog}
-          onClose={() => setIsBlogModalOpen(false)}
-          onSave={handleSaveBlog}
-        />
-      )}
+      {/* Unified Blog Composer Modal (Direct Photo Upload + Zero Mandatory Fields) */}
+      <CreateBlogModal
+        isOpen={isBlogModalOpen}
+        onClose={() => {
+          setIsBlogModalOpen(false);
+          setEditingBlog(null);
+        }}
+        postToEdit={editingBlog}
+        onSaved={(saved) => {
+          setBlogs(getStoredBlogPosts());
+          showToast(`Blog post "${saved.title || 'Post'}" saved!`);
+        }}
+      />
 
       {/* Confirmation Modal */}
       {confirmDelete && (
@@ -3319,9 +3054,10 @@ interface ProjectModalProps {
   onSave: (projectData: Omit<Project, 'id'>) => void;
 }
 
-function ProjectModal({ isOpen, initialProject, onClose, onSave }: ProjectModalProps) {
+function ProjectModal({ initialProject, onClose, onSave }: ProjectModalProps) {
   const [title, setTitle] = useState(initialProject?.title || '');
   const [type, setType] = useState<Project['type']>(initialProject?.type || 'Teaching');
+  const [image, setImage] = useState(initialProject?.image || '');
   const [link, setLink] = useState(initialProject?.link || '');
   const [description, setDescription] = useState(initialProject?.description || '');
   const [tagsString, setTagsString] = useState(initialProject?.tags.join(', ') || '');
@@ -3342,6 +3078,7 @@ function ProjectModal({ isOpen, initialProject, onClose, onSave }: ProjectModalP
     onSave({
       title: title.trim(),
       type,
+      image: image.trim() || undefined,
       link: link.trim() || undefined,
       description: description.trim(),
       tags,
@@ -3350,8 +3087,8 @@ function ProjectModal({ isOpen, initialProject, onClose, onSave }: ProjectModalP
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto animate-fadeIn">
-      <div className="relative w-full max-w-3xl my-8 bg-[#12151C] border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl text-white space-y-6">
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto animate-fadeIn">
+      <div className="relative w-full max-w-3xl my-6 sm:my-8 bg-[#12151C] border border-white/20 rounded-3xl p-5 sm:p-8 shadow-2xl text-white space-y-6">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 pb-4">
@@ -3364,19 +3101,28 @@ function ProjectModal({ isOpen, initialProject, onClose, onSave }: ProjectModalP
                 {initialProject ? 'Edit Portfolio Project' : 'Add Portfolio Project'}
               </h3>
               <p className="text-xs font-mono text-[#9CA3AF]">
-                Add an education or media project to the professional portfolio.
+                সরাসরি প্রজেক্টের ছবি আপলোড করুন এবং বিবরণ যুক্ত করুন
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-[#9CA3AF] hover:text-white cursor-pointer"
+            className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 text-[#9CA3AF] hover:text-white flex items-center justify-center cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Direct Project Photo Upload */}
+          <ImageUploadInput
+            label="Project Showcase Photo (Optional — Direct Upload)"
+            value={image}
+            onChange={setImage}
+            allowClear
+          />
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="sm:col-span-2 space-y-1.5">
               <label className="text-xs font-mono text-[#D1D5DB] font-semibold">
@@ -3388,18 +3134,18 @@ function ProjectModal({ isOpen, initialProject, onClose, onSave }: ProjectModalP
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Student-Centered English Presentation Workshop"
                 required
-                className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-sm font-mono text-white placeholder:text-white/30 focus:border-[var(--color-accent)] focus:outline-none"
+                className="w-full min-h-[44px] px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-base sm:text-sm font-mono text-white placeholder:text-white/30 focus:border-[var(--color-accent)] focus:outline-none"
               />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-xs font-mono text-[#D1D5DB] font-semibold">
-                Project Type *
+                Project Type
               </label>
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value as Project['type'])}
-                className="w-full px-3 py-2.5 rounded-xl bg-[#1A1F2C] border border-white/15 text-sm font-mono text-white focus:border-[var(--color-accent)] focus:outline-none"
+                className="w-full min-h-[44px] px-3 py-2.5 rounded-xl bg-[#1A1F2C] border border-white/15 text-base sm:text-sm font-mono text-white focus:border-[var(--color-accent)] focus:outline-none"
               >
                 <option value="Teaching">Teaching</option>
                 <option value="Media">Media</option>
@@ -3412,14 +3158,14 @@ function ProjectModal({ isOpen, initialProject, onClose, onSave }: ProjectModalP
           <div className="space-y-1.5">
             <label className="text-xs font-mono text-[#D1D5DB] font-semibold flex items-center gap-1.5">
               <ExternalLink className="w-3.5 h-3.5 text-[var(--color-accent)]" />
-              Project Resource or Documentation Link
+              Project Resource or Documentation Link (Optional)
             </label>
             <input
-              type="url"
+              type="text"
               value={link}
               onChange={(e) => setLink(e.target.value)}
               placeholder="https://example.com/portfolio-project"
-              className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-xs font-mono text-white placeholder:text-white/30 focus:border-[var(--color-accent)] focus:outline-none"
+              className="w-full min-h-[44px] px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-base sm:text-xs font-mono text-white placeholder:text-white/30 focus:border-[var(--color-accent)] focus:outline-none"
             />
           </div>
 
@@ -3850,239 +3596,6 @@ function ReferenceModal({ isOpen, initialReference, onClose, onSave }: Reference
             </button>
           </div>
         </form>
-      </div>
-    </div>
-  );
-}
-
-// ============================================================================
-// BLOG MODAL COMPONENT
-// ============================================================================
-
-interface BlogModalProps {
-  isOpen: boolean;
-  initialBlog: BlogPost | null;
-  onClose: () => void;
-  onSave: (blogData: Partial<BlogPost> & { title: string; content: string }) => void;
-}
-
-function BlogModal({ isOpen, initialBlog, onClose, onSave }: BlogModalProps) {
-  const [title, setTitle] = useState(initialBlog?.title || '');
-  const [slug, setSlug] = useState(initialBlog?.slug || '');
-  const [category, setCategory] = useState<BlogPost['category']>(initialBlog?.category || 'English Pedagogy');
-  const [description, setDescription] = useState(initialBlog?.description || '');
-  const [content, setContent] = useState(initialBlog?.content || '');
-  const [coverImage, setCoverImage] = useState(initialBlog?.coverImage || 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=1200');
-  const [status, setStatus] = useState<'Published' | 'Draft'>(initialBlog?.status || 'Published');
-  const [tagsString, setTagsString] = useState(initialBlog?.tags.join(', ') || 'English Pedagogy, Classroom Learning');
-  const [readingTime, setReadingTime] = useState(initialBlog?.readingTime || '5 min read');
-
-  // Auto-generate slug and reading time from content
-  const handleTitleChange = (val: string) => {
-    setTitle(val);
-    if (!initialBlog) {
-      setSlug(generateSlug(val));
-    }
-  };
-
-  const handleContentChange = (val: string) => {
-    setContent(val);
-    setReadingTime(calculateReadingTime(val));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim() || !content.trim()) return;
-
-    const tags = tagsString.split(',').map(t => t.trim()).filter(Boolean);
-
-    onSave({
-      id: initialBlog?.id,
-      title: title.trim(),
-      slug: slug.trim() ? generateSlug(slug) : generateSlug(title),
-      category,
-      description: description.trim(),
-      content: content.trim(),
-      coverImage: coverImage.trim(),
-      status,
-      tags: tags.length > 0 ? tags : ['English Pedagogy'],
-      readingTime: readingTime || calculateReadingTime(content),
-    });
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto animate-fadeIn">
-      <div className="relative w-full max-w-4xl my-8 bg-[#12151C] border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl text-white space-y-6">
-        
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/10 pb-4">
-          <div className="flex items-center space-x-2.5">
-            <div className="p-2 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-400">
-              <BookOpen className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-display font-bold text-xl text-white">
-                {initialBlog ? 'Edit Education Article' : 'Compose New Article'}
-              </h3>
-              <p className="text-xs font-mono text-[#9CA3AF]">
-                Share teaching strategies, classroom reflections, and educational media stories.
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-[#9CA3AF] hover:text-white cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="sm:col-span-2 space-y-1.5">
-              <label className="text-xs font-mono text-[#D1D5DB] font-semibold">
-                Article Title *
-              </label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => handleTitleChange(e.target.value)}
-                placeholder="e.g. Building Confident English Speakers Through Classroom Presentations"
-                required
-                className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-sm font-mono text-white focus:border-purple-500 focus:outline-none"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono text-[#D1D5DB] font-semibold">
-                Category *
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as BlogPost['category'])}
-                className="w-full px-3 py-2.5 rounded-xl bg-[#1A1F2C] border border-white/15 text-sm font-mono text-white focus:border-purple-500 focus:outline-none"
-              >
-                <option value="English Pedagogy">English Pedagogy</option>
-                <option value="Educational Media">Educational Media</option>
-                <option value="Lesson Design">Lesson Design</option>
-                <option value="Classroom Leadership">Classroom Leadership</option>
-                <option value="Academic Growth">Academic Growth</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono text-[#D1D5DB] font-semibold">
-                URL Slug (/blog/...)
-              </label>
-              <input
-                type="text"
-                value={slug}
-                onChange={(e) => setSlug(e.target.value)}
-                placeholder="classroom-presentation-learning"
-                className="w-full px-4 py-2 rounded-xl bg-white/[0.05] border border-white/15 text-xs font-mono text-white focus:border-purple-500 focus:outline-none"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono text-[#D1D5DB] font-semibold">
-                Status
-              </label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as 'Published' | 'Draft')}
-                className="w-full px-3 py-2 rounded-xl bg-[#1A1F2C] border border-white/15 text-xs font-mono text-white focus:border-purple-500 focus:outline-none"
-              >
-                <option value="Published">Published</option>
-                <option value="Draft">Draft</option>
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono text-[#D1D5DB] font-semibold">
-                Reading Time Estimate
-              </label>
-              <input
-                type="text"
-                value={readingTime}
-                onChange={(e) => setReadingTime(e.target.value)}
-                className="w-full px-4 py-2 rounded-xl bg-white/[0.05] border border-white/15 text-xs font-mono text-white focus:border-purple-500 focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono text-[#D1D5DB] font-semibold">
-              Cover Image URL
-            </label>
-            <input
-              type="url"
-              value={coverImage}
-              onChange={(e) => setCoverImage(e.target.value)}
-              placeholder="https://images.unsplash.com/photo-..."
-              className="w-full px-4 py-2 rounded-xl bg-white/[0.05] border border-white/15 text-xs font-mono text-white focus:border-purple-500 focus:outline-none"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono text-[#D1D5DB] font-semibold">
-              Summary / Excerpt
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-              placeholder="Short teaser description shown on cards and RSS feeds..."
-              className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-xs font-sans text-white focus:border-purple-500 focus:outline-none leading-relaxed"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono text-[#D1D5DB] font-semibold flex items-center justify-between">
-              <span>Article Content (Markdown supported) *</span>
-              <span className="text-[10px] text-[#9CA3AF]">{content.split(/\s+/).filter(Boolean).length} words</span>
-            </label>
-            <textarea
-              value={content}
-              onChange={(e) => handleContentChange(e.target.value)}
-              rows={10}
-              placeholder="# Introduction&#10;&#10;Share a teaching strategy, classroom reflection, or educational media story...&#10;&#10;## Key Takeaways&#10;- Learning objective&#10;- Classroom activity"
-              required
-              className="w-full px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/15 text-xs font-mono text-white focus:border-purple-500 focus:outline-none leading-relaxed"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono text-[#D1D5DB] font-semibold">
-              Tags (comma-separated)
-            </label>
-            <input
-              type="text"
-              value={tagsString}
-              onChange={(e) => setTagsString(e.target.value)}
-              placeholder="English Pedagogy, Lesson Design, Student Confidence"
-              className="w-full px-4 py-2 rounded-xl bg-white/[0.05] border border-white/15 text-xs font-mono text-white focus:border-purple-500 focus:outline-none"
-            />
-          </div>
-
-          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-white/10">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-mono text-[#D1D5DB]"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-mono text-xs font-bold shadow-lg shadow-purple-600/20"
-            >
-              Save Article
-            </button>
-          </div>
-        </form>
-
       </div>
     </div>
   );

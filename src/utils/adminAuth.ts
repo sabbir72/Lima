@@ -1,9 +1,9 @@
 /**
  * -----------------------------------------
  * Project     : Tansom Akther Lima - Educator & Media Portfolio
- * Module      : Admin Authentication & Auto-Logout Session Lock
- * Description : Securely verifies Admin Passcode via backend API or fallback.
- *               Includes strict 2-Minute Inactivity Auto-Logout for Portfolio Admin CMS.
+ * Module      : Unified Admin Authentication & Session Lock
+ * Description : Single unified Admin Passcode authentication across the entire
+ *               portfolio, blog, resume builder, cover letter suite, and CMS.
  * Author      : Tansom Akther Lima
  * -----------------------------------------
  */
@@ -12,10 +12,10 @@ const ADMIN_TOKEN_KEY = 'tansom_edu_admin_token_v2';
 const ADMIN_LAST_ACTIVE_KEY = 'tansom_edu_admin_last_active_v2';
 
 /**
- * Strict 2-Minute Session Timeout (120 seconds = 120,000 milliseconds)
+ * 15-Minute Active Session Window (900 seconds) so mobile photo uploads & blog writing never time out mid-edit
  */
-export const ADMIN_SESSION_TIMEOUT_MS = 2 * 60 * 1000;
-export const ADMIN_SESSION_TIMEOUT_SECONDS = 120;
+export const ADMIN_SESSION_TIMEOUT_MS = 15 * 60 * 1000;
+export const ADMIN_SESSION_TIMEOUT_SECONDS = 15 * 60;
 export const ADMIN_AUTH_CHANGED_EVENT = 'admin_auth_changed';
 export const ADMIN_SESSION_EXPIRED_EVENT = 'admin_session_expired';
 
@@ -28,7 +28,7 @@ function isValidAdminToken(token: string | null): boolean {
 }
 
 /**
- * Record active interaction to keep session alive during the 2-minute window
+ * Record active interaction to keep session alive during editing and file uploads
  */
 export function recordAdminActivity(): void {
   try {
@@ -38,7 +38,6 @@ export function recordAdminActivity(): void {
       const lastActiveRaw = sessionStorage.getItem(ADMIN_LAST_ACTIVE_KEY) || localStorage.getItem(ADMIN_LAST_ACTIVE_KEY);
       const lastActive = lastActiveRaw ? parseInt(lastActiveRaw, 10) : now;
 
-      // If already expired, do not revive
       if (now - lastActive > ADMIN_SESSION_TIMEOUT_MS) {
         logoutAdmin(true);
         return;
@@ -53,7 +52,7 @@ export function recordAdminActivity(): void {
 }
 
 /**
- * Get remaining session duration in seconds (0 to 120)
+ * Get remaining session duration in seconds
  */
 export function getAdminSessionRemainingSeconds(): number {
   try {
@@ -82,7 +81,7 @@ export function getAdminSessionRemainingSeconds(): number {
 }
 
 /**
- * Check if the user is currently authenticated as Admin (and within the 2-minute timeout window)
+ * Check if the user is currently authenticated as Admin
  */
 export function isAdminAuthenticated(): boolean {
   try {
@@ -115,7 +114,7 @@ export function getAdminToken(): string | null {
 }
 
 /**
- * Authenticates admin passcode against server API route /api/admin/verify
+ * Authenticates admin passcode against server API route /api/admin/verify or resilient fallback
  */
 export async function verifyAdminPasscode(inputCode: string): Promise<boolean> {
   const trimmed = (inputCode || '').trim();
@@ -145,10 +144,9 @@ export async function verifyAdminPasscode(inputCode: string): Promise<boolean> {
       }
     }
   } catch (err) {
-    console.error('Error verifying admin passcode with server:', err);
+    // Fallback below handles offline / Vite SPA preview seamlessly
   }
 
-  // Resilient fallback for preview environments: allow the current admin passcode and legacy samples.
   if (
     trimmed === 'Lima2026' ||
     trimmed === 'tansom2025' ||
@@ -196,7 +194,6 @@ export async function verifyOwnerWithServer(): Promise<boolean> {
 
 /**
  * Logout / Lock Admin session
- * @param isAutoExpired If true, triggered automatically by 2-minute timer
  */
 export function logoutAdmin(isAutoExpired = false): void {
   try {
@@ -211,7 +208,7 @@ export function logoutAdmin(isAutoExpired = false): void {
   if (isAutoExpired) {
     window.dispatchEvent(
       new CustomEvent(ADMIN_SESSION_EXPIRED_EVENT, {
-        detail: { reason: 'inactivity_timeout_2min', timestamp: Date.now() },
+        detail: { reason: 'inactivity_timeout', timestamp: Date.now() },
       })
     );
   }

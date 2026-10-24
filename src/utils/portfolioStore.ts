@@ -85,6 +85,7 @@ function normalizeProject(project: Project): Project | null {
 
   return {
     ...project,
+    image: typeof project.image === 'string' ? project.image : undefined,
     type: PROJECT_TYPES.includes(project.type) ? project.type : inferProjectType({ ...project, tags }),
     tags,
   };
@@ -147,6 +148,7 @@ export function getStoredPortfolioData(): PortfolioData {
             profile.avatar = DEFAULT_PROFILE.avatar;
           }
           (Object.keys(profile) as (keyof ProfileData)[]).forEach(field => {
+            if (field === 'avatar' && profile.avatar.startsWith('data:image/')) return;
             if (containsLegacyTestingContent(profile[field])) {
               profile[field] = DEFAULT_PROFILE[field];
             }

@@ -47,6 +47,7 @@ export interface Project {
   title: string;
   type: 'Teaching' | 'Media' | 'Presentation' | 'Curriculum';
   description: string;
+  image?: string;
   metrics?: {
     label: string;
     value: string;

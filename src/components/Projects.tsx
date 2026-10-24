@@ -1,20 +1,28 @@
-import { useState, useEffect } from 'react';
-import { ExternalLink, Github, CheckCircle2, Filter, Layers, FileCheck, Plus, Settings, BookOpen, Camera, Presentation } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ExternalLink, Github, Layers, FileCheck, Plus, BookOpen, Camera, Presentation, Upload, Trash2, Loader2 } from 'lucide-react';
 import { Project } from '../types';
-import { getStoredProjects, PORTFOLIO_UPDATED_EVENT } from '../utils/portfolioStore';
+import { getStoredProjects, updateStoredProject, PORTFOLIO_UPDATED_EVENT } from '../utils/portfolioStore';
 import { isAdminAuthenticated } from '../utils/adminAuth';
 import { navigateTo } from '../utils/router';
+import { processUploadedImage } from '../utils/imageUpload';
 
 export default function Projects() {
   const [projects, setProjects] = useState<Project[]>(() => getStoredProjects());
   const [isAdmin, setIsAdmin] = useState(() => isAdminAuthenticated());
   const [selectedType, setSelectedType] = useState<string>('All');
   const [activeModalProject, setActiveModalProject] = useState<Project | null>(null);
+  const [uploadingProjectId, setUploadingProjectId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const targetProjectIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const handleSync = () => {
-      setProjects(getStoredProjects());
+      const updated = getStoredProjects();
+      setProjects(updated);
       setIsAdmin(isAdminAuthenticated());
+      setActiveModalProject((prev) =>
+        prev ? updated.find((p) => p.id === prev.id) || null : null
+      );
     };
     window.addEventListener(PORTFOLIO_UPDATED_EVENT, handleSync);
     window.addEventListener('admin_auth_changed', handleSync);
@@ -23,6 +31,38 @@ export default function Projects() {
       window.removeEventListener('admin_auth_changed', handleSync);
     };
   }, []);
+
+  const triggerProjectImageUpload = (projectId: string) => {
+    targetProjectIdRef.current = projectId;
+    fileInputRef.current?.click();
+  };
+
+  const handleProjectFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const projectId = targetProjectIdRef.current;
+    if (!file || !projectId) return;
+
+    setUploadingProjectId(projectId);
+    try {
+      const dataUrl = await processUploadedImage(file, {
+        maxWidth: 1280,
+        maxHeight: 960,
+        quality: 0.82,
+      });
+      updateStoredProject(projectId, { image: dataUrl });
+    } catch (err) {
+      console.error('Project photo upload error:', err);
+    } finally {
+      setUploadingProjectId(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveProjectImage = (projectId: string) => {
+    updateStoredProject(projectId, { image: '' });
+  };
 
   const categories = ['All', 'Teaching', 'Media', 'Presentation', 'Curriculum'];
 
@@ -62,8 +102,16 @@ export default function Projects() {
 
   return (
     <section id="projects" className="py-24 bg-[var(--color-dark-card,#141E2A)] text-[#F3F4F6] border-t border-white/10 px-4 sm:px-6 relative">
+      {/* Hidden Direct Project Image Upload Input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleProjectFileChange}
+        className="hidden"
+      />
+
       <div className="max-w-7xl mx-auto space-y-12 relative z-10">
-        
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto space-y-3">
           <p className="text-xs font-mono font-bold text-[var(--color-accent)] tracking-widest uppercase mb-1 flex items-center justify-center gap-1.5">
@@ -101,7 +149,7 @@ export default function Projects() {
           {isAdmin && (
             <button
               onClick={() => navigateTo('/admin')}
-              className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-mono transition-all cursor-pointer"
+              className="min-h-[40px] inline-flex items-center space-x-1.5 px-4 py-2 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-mono transition-all cursor-pointer"
               title="Open Admin System to add/edit/delete projects"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -115,93 +163,157 @@ export default function Projects() {
           {filteredProjects.map((project) => (
             <div
               key={project.id}
-              className="glass-card glass-card-hover rounded-2xl p-6 border border-white/10 flex flex-col justify-between space-y-5 relative group transition-all duration-300 hover:border-[var(--color-accent)]/50 hover:shadow-xl hover:shadow-[var(--color-accent)]/10"
+              className="glass-card glass-card-hover rounded-2xl overflow-hidden border border-white/10 flex flex-col justify-between relative group transition-all duration-300 hover:border-[var(--color-accent)]/50 hover:shadow-xl hover:shadow-[var(--color-accent)]/10"
             >
-              <div className="space-y-4">
-                {/* Header: Type Badge & Action Link */}
-                <div className="flex items-center justify-between">
-                  <span className={`px-2.5 py-1 rounded-md text-[11px] font-mono font-bold border flex items-center gap-1.5 ${getTypeBadgeStyle(project.type)}`}>
-                    {getTypeIcon(project.type)}
-                    <span>{project.type.toUpperCase()}</span>
-                  </span>
-
-                  {project.link && (
-                    <a
-                      href={project.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 rounded-xl bg-white/[0.04] hover:bg-[var(--color-accent)]/20 border border-white/10 hover:border-[var(--color-accent)]/40 text-[#9CA3AF] hover:text-[var(--color-accent)] transition-all"
-                      title="View Project Resource"
+              {/* Project Showcase Image (if uploaded) */}
+              {project.image && (
+                <div
+                  onClick={() => setActiveModalProject(project)}
+                  className="relative h-48 w-full overflow-hidden bg-black/40 border-b border-white/10 cursor-pointer"
+                >
+                  <img
+                    src={project.image}
+                    alt={project.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                  />
+                  {isAdmin && (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10"
                     >
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
-                  )}
-                </div>
-
-                {/* Project Title */}
-                <h3 className="font-display font-extrabold text-lg sm:text-xl text-white group-hover:text-[var(--color-accent)] transition-colors leading-snug">
-                  {project.title}
-                </h3>
-
-                {/* Project Details / Description */}
-                <p className="text-xs sm:text-sm text-[#D1D5DB] font-light leading-relaxed line-clamp-3">
-                  {project.description}
-                </p>
-
-                {/* Metrics / Key highlights */}
-                {project.metrics && project.metrics.length > 0 && (
-                  <div className="grid grid-cols-2 gap-2 pt-2">
-                    {project.metrics.slice(0, 2).map((m, idx) => (
-                      <div key={idx} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-0.5">
-                        <p className="text-[10px] font-mono text-[#9CA3AF] uppercase truncate">{m.label}</p>
-                        <p className="text-xs font-mono font-bold text-white truncate">{m.value}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Bottom Section: Tools Used Key & Modal Inspector */}
-              <div className="space-y-4 pt-4 border-t border-white/10">
-                {/* Relevant Skills and Resources */}
-                <div className="space-y-1.5">
-                  <p className="text-[10px] font-mono uppercase tracking-widest text-[#9CA3AF] flex items-center justify-between">
-                    <span>Skills & Resources</span>
-                    <span className="text-[9px] text-[var(--color-accent)]">{project.tags.length} Items</span>
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {project.tags.map((tool) => (
-                      <span
-                        key={tool}
-                        className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-white/[0.04] border border-white/10 text-[#D1D5DB] group-hover:border-[var(--color-accent)]/30 transition-colors"
+                      <button
+                        type="button"
+                        disabled={uploadingProjectId === project.id}
+                        onClick={() => triggerProjectImageUpload(project.id)}
+                        className="min-h-[36px] px-2.5 py-1.5 rounded-lg bg-black/75 hover:bg-black/90 text-white border border-white/20 text-[11px] font-mono flex items-center gap-1 cursor-pointer backdrop-blur-md"
+                        title="Change Project Photo"
                       >
-                        {tool}
-                      </span>
-                    ))}
+                        {uploadingProjectId === project.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--color-accent)]" />
+                        ) : (
+                          <Upload className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                        )}
+                        <span>Change</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveProjectImage(project.id)}
+                        className="w-9 h-9 flex items-center justify-center rounded-lg bg-black/75 hover:bg-red-600/80 text-red-300 hover:text-white border border-white/20 cursor-pointer backdrop-blur-md"
+                        title="Remove Photo"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="p-6 flex-1 flex flex-col justify-between space-y-5">
+                <div className="space-y-4">
+                  {/* Header: Type Badge & Action Link / Direct Upload */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`px-2.5 py-1 rounded-md text-[11px] font-mono font-bold border flex items-center gap-1.5 ${getTypeBadgeStyle(project.type)}`}>
+                      {getTypeIcon(project.type)}
+                      <span>{project.type.toUpperCase()}</span>
+                    </span>
+
+                    <div className="flex items-center gap-1.5">
+                      {isAdmin && !project.image && (
+                        <button
+                          type="button"
+                          disabled={uploadingProjectId === project.id}
+                          onClick={() => triggerProjectImageUpload(project.id)}
+                          className="min-h-[36px] px-2.5 py-1.5 rounded-xl bg-white/[0.05] hover:bg-[var(--color-accent)]/20 border border-white/15 hover:border-[var(--color-accent)]/40 text-xs font-mono text-[#D1D5DB] hover:text-white flex items-center gap-1.5 transition-all cursor-pointer"
+                          title="Upload Project Photo directly"
+                        >
+                          {uploadingProjectId === project.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--color-accent)]" />
+                          ) : (
+                            <Upload className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                          )}
+                          <span>Add Photo</span>
+                        </button>
+                      )}
+
+                      {project.link && (
+                        <a
+                          href={project.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 rounded-xl bg-white/[0.04] hover:bg-[var(--color-accent)]/20 border border-white/10 hover:border-[var(--color-accent)]/40 text-[#9CA3AF] hover:text-[var(--color-accent)] transition-all"
+                          title="View Project Resource"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Project Title */}
+                  <h3 className="font-display font-extrabold text-lg sm:text-xl text-white group-hover:text-[var(--color-accent)] transition-colors leading-snug">
+                    {project.title}
+                  </h3>
+
+                  {/* Project Details / Description */}
+                  <p className="text-xs sm:text-sm text-[#D1D5DB] font-light leading-relaxed line-clamp-3">
+                    {project.description}
+                  </p>
+
+                  {/* Metrics / Key highlights */}
+                  {project.metrics && project.metrics.length > 0 && (
+                    <div className="grid grid-cols-2 gap-2 pt-2">
+                      {project.metrics.slice(0, 2).map((m, idx) => (
+                        <div key={idx} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-0.5">
+                          <p className="text-[10px] font-mono text-[#9CA3AF] uppercase truncate">{m.label}</p>
+                          <p className="text-xs font-mono font-bold text-white truncate">{m.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                {/* Actions Bar */}
-                <div className="flex items-center justify-between pt-2">
-                  <button
-                    onClick={() => setActiveModalProject(project)}
-                    className="text-xs font-mono text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] font-bold flex items-center gap-1 group/btn"
-                  >
-                    <span>View Project Details</span>
-                    <span className="group-hover/btn:translate-x-1 transition-transform">→</span>
-                  </button>
+                {/* Bottom Section: Tools Used Key & Modal Inspector */}
+                <div className="space-y-4 pt-4 border-t border-white/10">
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-mono uppercase tracking-widest text-[#9CA3AF] flex items-center justify-between">
+                      <span>Skills & Resources</span>
+                      <span className="text-[9px] text-[var(--color-accent)]">{project.tags.length} Items</span>
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {project.tags.map((tool) => (
+                        <span
+                          key={tool}
+                          className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-white/[0.04] border border-white/10 text-[#D1D5DB] group-hover:border-[var(--color-accent)]/30 transition-colors"
+                        >
+                          {tool}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
 
-                  {project.link && (
-                    <a
-                      href={project.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs font-mono text-[#9CA3AF] hover:text-white flex items-center gap-1 transition-colors"
+                  {/* Actions Bar */}
+                  <div className="flex items-center justify-between pt-2">
+                    <button
+                      onClick={() => setActiveModalProject(project)}
+                      className="text-xs font-mono text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] font-bold flex items-center gap-1 group/btn cursor-pointer"
                     >
-                      <Github className="w-3.5 h-3.5" />
-                      <span>Resource</span>
-                    </a>
-                  )}
+                      <span>View Project Details</span>
+                      <span className="group-hover/btn:translate-x-1 transition-transform">→</span>
+                    </button>
+
+                    {project.link && (
+                      <a
+                        href={project.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-mono text-[#9CA3AF] hover:text-white flex items-center gap-1 transition-colors"
+                      >
+                        <Github className="w-3.5 h-3.5" />
+                        <span>Resource</span>
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -210,8 +322,13 @@ export default function Projects() {
 
         {/* Project Inspector Modal */}
         {activeModalProject && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-            <div className="bg-[#12151C] border border-white/10 rounded-3xl p-6 sm:p-8 max-w-2xl w-full space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto text-[#F3F4F6]">
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn overflow-y-auto"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setActiveModalProject(null);
+            }}
+          >
+            <div className="bg-[#12151C] border border-white/10 rounded-3xl p-6 sm:p-8 max-w-2xl w-full space-y-6 shadow-2xl relative max-h-[90dvh] overflow-y-auto text-[#F3F4F6]">
               {/* Header */}
               <div className="flex items-start justify-between border-b border-white/10 pb-4">
                 <div className="space-y-1 pr-4">
@@ -219,7 +336,6 @@ export default function Projects() {
                     <span className={`px-2.5 py-0.5 rounded text-[10px] font-mono font-bold border ${getTypeBadgeStyle(activeModalProject.type)}`}>
                       {activeModalProject.type}
                     </span>
-                    <span className="text-xs font-mono text-[#9CA3AF]">{activeModalProject.id}</span>
                   </div>
                   <h3 className="font-display font-extrabold text-xl text-white">
                     {activeModalProject.title}
@@ -228,11 +344,46 @@ export default function Projects() {
 
                 <button
                   onClick={() => setActiveModalProject(null)}
-                  className="p-1.5 rounded-full text-[#9CA3AF] hover:text-white hover:bg-white/10 transition-colors shrink-0"
+                  className="w-10 h-10 flex items-center justify-center rounded-full text-[#9CA3AF] hover:text-white hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
                 >
                   ✕
                 </button>
               </div>
+
+              {/* Project Image inside Modal */}
+              {activeModalProject.image && (
+                <div className="relative rounded-2xl overflow-hidden border border-white/15 bg-black/40 max-h-80">
+                  <img
+                    src={activeModalProject.image}
+                    alt={activeModalProject.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+
+              {isAdmin && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={uploadingProjectId === activeModalProject.id}
+                    onClick={() => triggerProjectImageUpload(activeModalProject.id)}
+                    className="min-h-[42px] px-4 py-2 rounded-xl bg-[var(--color-accent)] text-black font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>{activeModalProject.image ? 'Change Project Photo' : 'Upload Project Photo'}</span>
+                  </button>
+                  {activeModalProject.image && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveProjectImage(activeModalProject.id)}
+                      className="min-h-[42px] px-3.5 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 font-mono text-xs flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Remove Photo</span>
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Description */}
               <div className="space-y-2">
@@ -268,7 +419,7 @@ export default function Projects() {
 
                 <button
                   onClick={() => setActiveModalProject(null)}
-                  className="px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-[#D1D5DB] text-xs font-mono transition-colors"
+                  className="px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-[#D1D5DB] text-xs font-mono transition-colors cursor-pointer"
                 >
                   Close
                 </button>
@@ -276,7 +427,6 @@ export default function Projects() {
             </div>
           </div>
         )}
-
       </div>
     </section>
   );

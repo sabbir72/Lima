@@ -3,14 +3,13 @@
  * Project     : Tansom Akther Lima Educator Portfolio
  * Module      : Blog Store & Persistent LocalStorage Manager
  * Description : Handles persistent storage, CRUD operations, slug generation,
- *               and reactive state events for blog articles.
- * Author      : Sabbir Ahamed
- * Last Updated: 2026-08-04
+ *               optional fields, inline uploaded images, and reactive state events.
+ * Author      : Tansom Akther Lima
  * -----------------------------------------
  */
 
 import { BlogPost, BLOG_POSTS } from '../data/blogs';
-import { isAdminAuthenticated } from './adminAuth';
+import { isSystemActionLocked } from './lockStore';
 import { PERSONAL_INFO } from '../data';
 import { containsLegacyTestingContent } from './legacyContent';
 import { getStoredProfile } from './portfolioStore';
@@ -19,45 +18,63 @@ const STORAGE_KEY = 'sabbir_portfolio_blogs_v1';
 export const BLOGS_UPDATED_EVENT = 'sabbir_blogs_updated';
 
 /**
- * Normalizes author avatar to always reflect the main profile avatar from PERSONAL_INFO
+ * Normalizes legacy author fields while preserving any custom uploaded author avatar
  */
 function normalizeAuthorAvatar(post: BlogPost): BlogPost {
   const profile = getStoredProfile();
-  const currentAvatar = post.author?.avatar || '';
+  const currentAvatar = (post.author?.avatar || '').trim();
   const authorName = (post.author?.name || '').trim();
-  const isPortfolioAuthor = !authorName ||
+
+  const isLegacyOwnerName =
+    authorName === 'Sabbir Ahamed' ||
+    authorName.toLowerCase().includes('sabbir');
+
+  const isPortfolioAuthor =
+    !authorName ||
     authorName === PERSONAL_INFO.name ||
     authorName === profile.name ||
-    authorName === 'Sabbir Ahamed' ||
+    isLegacyOwnerName ||
     authorName.toLowerCase().includes('tansom') ||
-    authorName.toLowerCase().includes('lima') ||
-    authorName.toLowerCase().includes('sabbir');
-  const isInternalAvatar = currentAvatar.includes('sabbir_avatar') || currentAvatar.includes('./assets') || !currentAvatar;
+    authorName.toLowerCase().includes('lima');
 
-  const resolvedAvatar = profile.avatar || PERSONAL_INFO.avatar || '/images/lima.jpeg';
+  const isLegacyBrokenAvatar =
+    !currentAvatar ||
+    currentAvatar.includes('sabbir_avatar') ||
+    currentAvatar.includes('./assets');
+
+  const resolvedProfileAvatar = profile.avatar || PERSONAL_INFO.avatar || '/images/lima.jpeg';
   const resolvedName = profile.name || PERSONAL_INFO.name;
   const resolvedRole = profile.title || PERSONAL_INFO.title;
   const resolvedBio = profile.objective || PERSONAL_INFO.objective;
 
-  if (isPortfolioAuthor || isInternalAvatar) {
+  // Keep custom uploaded author photo (data:image/*) or custom non-default URL if user set one
+  const hasCustomAuthorAvatar =
+    !isLegacyBrokenAvatar &&
+    currentAvatar !== '/images/lima.jpeg' &&
+    currentAvatar !== PERSONAL_INFO.avatar;
+
+  const finalAvatar = hasCustomAuthorAvatar ? currentAvatar : resolvedProfileAvatar;
+
+  if (isPortfolioAuthor || isLegacyBrokenAvatar) {
     return {
       ...post,
       author: {
         ...post.author,
-        name: isPortfolioAuthor ? resolvedName : post.author?.name || resolvedName,
-        role: isPortfolioAuthor ? resolvedRole : post.author?.role || resolvedRole,
-        avatar: resolvedAvatar,
-        bio: isPortfolioAuthor ? resolvedBio : post.author?.bio || resolvedBio,
+        name: isLegacyOwnerName || !authorName ? resolvedName : authorName,
+        role: post.author?.role || resolvedRole,
+        avatar: finalAvatar,
+        bio: post.author?.bio || resolvedBio,
       },
     };
   }
+
   return post;
 }
 
 const CANDIDATE_BLOG_KEYS = [
   STORAGE_KEY,
   'sabbir_portfolio_blogs',
-  'sabbir_blog_posts'
+  'sabbir_blog_posts',
 ];
 
 /**
@@ -71,20 +88,33 @@ export function getStoredBlogPosts(): BlogPost[] {
         const parsed: BlogPost[] = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
           const synchronizedPosts = parsed
-            .filter(post => !containsLegacyTestingContent([
-              post.author?.name,
-              post.title,
-              post.category,
-              post.description,
-              post.content,
-              ...(post.tags || []),
-              post.author?.role,
-              post.author?.bio,
-            ].join(' ')))
-            .map(post => normalizeAuthorAvatar({
-            ...post,
-            status: post.status || 'Published',
-          }));
+            .filter(
+              (post) =>
+                !containsLegacyTestingContent(
+                  [
+                    post.author?.name,
+                    post.title,
+                    post.category,
+                    post.description,
+                    post.content,
+                    ...(post.tags || []),
+                    post.author?.role,
+                    post.author?.bio,
+                  ].join(' ')
+                )
+            )
+            .map((post) =>
+              normalizeAuthorAvatar({
+                ...post,
+                title: post.title ?? '',
+                category: post.category ?? '',
+                description: post.description ?? '',
+                content: post.content ?? '',
+                coverImage: post.coverImage ?? '',
+                tags: Array.isArray(post.tags) ? post.tags : [],
+                status: post.status || 'Published',
+              })
+            );
 
           try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(synchronizedPosts));
@@ -101,10 +131,12 @@ export function getStoredBlogPosts(): BlogPost[] {
   }
 
   // First time initialization fallback - load default posts with status 'Published'
-  const initialPosts = BLOG_POSTS.map((post: BlogPost) => normalizeAuthorAvatar({
-    ...post,
-    status: post.status || ('Published' as const),
-  }));
+  const initialPosts = BLOG_POSTS.map((post: BlogPost) =>
+    normalizeAuthorAvatar({
+      ...post,
+      status: post.status || ('Published' as const),
+    })
+  );
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(initialPosts));
     localStorage.setItem('sabbir_portfolio_blogs', JSON.stringify(initialPosts));
@@ -138,6 +170,7 @@ export function getBlogPostBySlug(slug: string): BlogPost | undefined {
  * Helper to auto-generate a clean URL slug from title
  */
 export function generateSlug(title: string): string {
+  if (!title) return '';
   return title
     .toLowerCase()
     .trim()
@@ -150,31 +183,39 @@ export function generateSlug(title: string): string {
  * Helper to calculate reading time from markdown content
  */
 export function calculateReadingTime(content: string): string {
-  const words = content.trim().split(/\s+/).length;
+  if (!content || !content.trim()) return '';
+  const words = content.trim().split(/\s+/).filter(Boolean).length;
+  if (words === 0) return '';
   const minutes = Math.max(1, Math.ceil(words / 200));
   return `${minutes} min read`;
 }
 
 /**
- * Create or Update a Blog Post (Restricted strictly to authenticated Admin)
+ * Create or Update a Blog Post — Zero Mandatory Fields, Unified System Lock Protected
  */
-export function upsertBlogPost(postData: Partial<BlogPost> & { title: string; content: string }): BlogPost {
-  if (!isAdminAuthenticated()) {
-    throw new Error('Unauthorized: Admin authentication required to create or modify blog posts.');
+export function upsertBlogPost(postData: Partial<BlogPost>): BlogPost {
+  if (isSystemActionLocked()) {
+    throw new Error('Unauthorized: System is locked. Please enter the Admin Passcode first.');
   }
 
   const posts = getStoredBlogPosts();
-  
-  // Clean / generate slug
-  let cleanSlug = postData.slug ? generateSlug(postData.slug) : generateSlug(postData.title);
+  const titleVal = (postData.title ?? '').trim();
+
+  // Clean / generate slug even when title is blank
+  let cleanSlug = postData.slug
+    ? generateSlug(postData.slug)
+    : titleVal
+    ? generateSlug(titleVal)
+    : '';
+
   if (!cleanSlug) {
-    cleanSlug = `blog-${Date.now()}`;
+    cleanSlug = `post-${Date.now()}`;
   }
 
   // Ensure unique slug if new post or changing slug
   let finalSlug = cleanSlug;
   let counter = 1;
-  while (posts.some(p => p.slug === finalSlug && p.id !== postData.id)) {
+  while (posts.some((p) => p.slug === finalSlug && p.id !== postData.id)) {
     finalSlug = `${cleanSlug}-${counter}`;
     counter++;
   }
@@ -187,32 +228,50 @@ export function upsertBlogPost(postData: Partial<BlogPost> & { title: string; co
   });
 
   const profile = getStoredProfile();
+  const defaultAvatar = profile.avatar || PERSONAL_INFO.avatar || '/images/lima.jpeg';
 
   if (postData.id) {
-    // UPDATE existing post
-    const index = posts.findIndex(p => p.id === postData.id);
+    // UPDATE existing post — respect empty strings/arrays when cleared by user
+    const index = posts.findIndex((p) => p.id === postData.id);
     if (index !== -1) {
       const existing = posts[index];
+      const nextContent = postData.content !== undefined ? postData.content : existing.content;
       const updatedPost: BlogPost = {
         ...existing,
         ...postData,
         id: existing.id,
-        title: postData.title,
-        slug: finalSlug,
-        content: postData.content,
-        category: postData.category || existing.category || 'English Pedagogy',
-        description: postData.description || existing.description || '',
-        coverImage: postData.coverImage || existing.coverImage || 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=1200',
-        publishDate: postData.publishDate || existing.publishDate || formattedDate,
-        readingTime: postData.readingTime || calculateReadingTime(postData.content),
-        tags: postData.tags || existing.tags || ['English Pedagogy'],
+        title: postData.title !== undefined ? postData.title : existing.title,
+        slug: postData.slug || postData.title ? finalSlug : existing.slug || finalSlug,
+        content: nextContent,
+        category: postData.category !== undefined ? postData.category : existing.category,
+        description: postData.description !== undefined ? postData.description : existing.description,
+        coverImage: postData.coverImage !== undefined ? postData.coverImage : existing.coverImage,
+        inlineImages: postData.inlineImages !== undefined ? postData.inlineImages : existing.inlineImages,
+        publishDate: postData.publishDate !== undefined ? postData.publishDate : (existing.publishDate || formattedDate),
+        readingTime:
+          postData.readingTime !== undefined
+            ? postData.readingTime
+            : calculateReadingTime(nextContent),
+        tags: postData.tags !== undefined ? postData.tags : (existing.tags || []),
         featured: postData.featured ?? existing.featured ?? false,
         status: postData.status || existing.status || 'Published',
         author: {
-          name: postData.author?.name || existing.author?.name || profile.name || PERSONAL_INFO.name,
-          role: postData.author?.role || existing.author?.role || profile.title || PERSONAL_INFO.title,
-          avatar: postData.author?.avatar || existing.author?.avatar || profile.avatar || PERSONAL_INFO.avatar || '/images/lima.jpeg',
-          bio: postData.author?.bio || existing.author?.bio || profile.objective || PERSONAL_INFO.objective,
+          name:
+            postData.author?.name !== undefined
+              ? postData.author.name || profile.name || PERSONAL_INFO.name
+              : existing.author?.name || profile.name || PERSONAL_INFO.name,
+          role:
+            postData.author?.role !== undefined
+              ? postData.author.role
+              : existing.author?.role ?? profile.title ?? PERSONAL_INFO.title,
+          avatar:
+            postData.author?.avatar !== undefined
+              ? postData.author.avatar || defaultAvatar
+              : existing.author?.avatar || defaultAvatar,
+          bio:
+            postData.author?.bio !== undefined
+              ? postData.author.bio
+              : existing.author?.bio ?? profile.objective ?? PERSONAL_INFO.objective,
         },
       };
 
@@ -222,45 +281,46 @@ export function upsertBlogPost(postData: Partial<BlogPost> & { title: string; co
     }
   }
 
-  // CREATE new post
+  // CREATE new post — all fields optional!
+  const contentVal = postData.content ?? '';
   const newPost: BlogPost = {
     id: `post_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-    title: postData.title,
+    title: titleVal,
     slug: finalSlug,
-    category: postData.category || 'English Pedagogy',
-    description: postData.description || '',
-    content: postData.content,
-    coverImage: postData.coverImage || '/images/showcase_interactive_classroom.jpg',
-    publishDate: postData.publishDate || formattedDate,
-    readingTime: postData.readingTime || calculateReadingTime(postData.content),
-    tags: postData.tags && postData.tags.length > 0 ? postData.tags : ['English Pedagogy'],
+    category: postData.category ?? '',
+    description: postData.description ?? '',
+    content: contentVal,
+    coverImage: postData.coverImage ?? '',
+    inlineImages: postData.inlineImages,
+    publishDate: postData.publishDate ?? formattedDate,
+    readingTime: postData.readingTime ?? calculateReadingTime(contentVal),
+    tags: Array.isArray(postData.tags) ? postData.tags : [],
     featured: postData.featured || false,
     status: postData.status || 'Published',
     author: {
       name: postData.author?.name || profile.name || PERSONAL_INFO.name,
-      role: postData.author?.role || profile.title || PERSONAL_INFO.title,
-      avatar: postData.author?.avatar || profile.avatar || PERSONAL_INFO.avatar || '/images/lima.jpeg',
-      bio: postData.author?.bio || profile.objective || PERSONAL_INFO.objective,
+      role: postData.author?.role ?? profile.title ?? PERSONAL_INFO.title,
+      avatar: postData.author?.avatar || defaultAvatar,
+      bio: postData.author?.bio ?? profile.objective ?? PERSONAL_INFO.objective,
     },
   };
 
-  // Add to beginning of array
   const updatedList = [newPost, ...posts];
   saveStoredBlogPosts(updatedList);
   return newPost;
 }
 
 /**
- * Delete a Blog Post by ID (Restricted strictly to authenticated Admin)
+ * Delete a Blog Post by ID
  */
 export function deleteBlogPost(id: string): boolean {
-  if (!isAdminAuthenticated()) {
+  if (isSystemActionLocked()) {
     console.warn('Unauthorized attempt to delete blog post.');
     return false;
   }
 
   const posts = getStoredBlogPosts();
-  const filtered = posts.filter(p => p.id !== id);
+  const filtered = posts.filter((p) => p.id !== id);
   if (filtered.length !== posts.length) {
     saveStoredBlogPosts(filtered);
     return true;
@@ -269,10 +329,10 @@ export function deleteBlogPost(id: string): boolean {
 }
 
 /**
- * Reset posts to default sample dataset (Restricted strictly to authenticated Admin)
+ * Reset posts to default sample dataset
  */
 export function resetStoredBlogPosts(): BlogPost[] {
-  if (!isAdminAuthenticated()) {
+  if (isSystemActionLocked()) {
     console.warn('Unauthorized attempt to reset blog posts.');
     return getStoredBlogPosts();
   }

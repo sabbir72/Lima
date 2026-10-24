@@ -8,6 +8,7 @@ import {
 import { PERSONAL_INFO, SKILL_CATEGORIES, WORK_EXPERIENCE, PROJECTS, EDUCATION_HISTORY } from '../data';
 import { usePortfolioProfile } from '../utils/usePortfolioProfile';
 import { isAdminAuthenticated } from '../utils/adminAuth';
+import { isSystemActionLocked, LOCKS_UPDATED_EVENT } from '../utils/lockStore';
 import AdminPasscodeModal from './AdminPasscodeModal';
 import html2pdf from 'html2pdf.js';
 
@@ -133,15 +134,19 @@ export default function CoverLetterGeneratorModal({
   const [isEditing, setIsEditing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [customContent, setCustomContent] = useState<string>('');
-  const [isAdmin, setIsAdmin] = useState<boolean>(() => isAdminAuthenticated());
+  const [isLocked, setIsLocked] = useState<boolean>(() => isSystemActionLocked());
   const [isPasscodeModalOpen, setIsPasscodeModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
-    const handleAuth = () => {
-      setIsAdmin(isAdminAuthenticated());
+    const syncLock = () => {
+      setIsLocked(isSystemActionLocked());
     };
-    window.addEventListener('admin_auth_changed', handleAuth);
-    return () => window.removeEventListener('admin_auth_changed', handleAuth);
+    window.addEventListener('admin_auth_changed', syncLock);
+    window.addEventListener(LOCKS_UPDATED_EVENT, syncLock);
+    return () => {
+      window.removeEventListener('admin_auth_changed', syncLock);
+      window.removeEventListener(LOCKS_UPDATED_EVENT, syncLock);
+    };
   }, []);
 
   // UI Feedback State
@@ -297,7 +302,7 @@ ${profile.title}`;
 
   // Handlers
   const handleGenerate = () => {
-    if (!isAdminAuthenticated()) {
+    if (isSystemActionLocked()) {
       setIsPasscodeModalOpen(true);
       return;
     }
@@ -319,7 +324,7 @@ ${profile.title}`;
   };
 
   const handleCopy = () => {
-    if (!isAdminAuthenticated()) {
+    if (isSystemActionLocked()) {
       setIsPasscodeModalOpen(true);
       return;
     }
@@ -330,7 +335,7 @@ ${profile.title}`;
 
   // Browser Print trigger with dedicated isolated iframe for A4 print/PDF output
   const handlePrint = () => {
-    if (!isAdminAuthenticated()) {
+    if (isSystemActionLocked()) {
       setIsPasscodeModalOpen(true);
       return;
     }
@@ -421,7 +426,7 @@ ${profile.title}`;
   };
 
   const handleDownloadPdf = () => {
-    if (!isAdminAuthenticated()) {
+    if (isSystemActionLocked()) {
       setIsPasscodeModalOpen(true);
       return;
     }
@@ -486,7 +491,7 @@ ${profile.title}`;
   };
 
   const handleSaveToHistory = () => {
-    if (!isAdminAuthenticated()) {
+    if (isSystemActionLocked()) {
       setIsPasscodeModalOpen(true);
       return;
     }
@@ -511,53 +516,18 @@ ${profile.title}`;
 
   if (!isOpen) return null;
 
-  if (!isAdmin) {
+  if (isLocked) {
     return (
-      <>
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-          <div className="relative w-full max-w-md bg-[#12151C] border border-blue-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl text-white space-y-6 text-center">
-            <div className="inline-flex p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/30 text-blue-400 mx-auto">
-              <Lock className="w-8 h-8" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-display font-extrabold text-xl text-white">
-                Admin Authentication Required
-              </h3>
-              <p className="text-xs font-mono text-[#9CA3AF] leading-relaxed">
-                Only the verified portfolio administrator has permission to generate, customize, or download tailored cover letters.
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <button
-                onClick={onClose}
-                className="flex-1 py-3 rounded-full bg-white/10 hover:bg-white/20 text-white font-mono text-xs font-bold transition-all cursor-pointer"
-              >
-                Close
-              </button>
-              <button
-                onClick={() => setIsPasscodeModalOpen(true)}
-                className="flex-1 py-3 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-bold shadow-lg shadow-blue-600/25 transition-all cursor-pointer flex items-center justify-center space-x-2"
-              >
-                <Lock className="w-3.5 h-3.5" />
-                <span>Admin Unlock</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {isPasscodeModalOpen && (
-          <AdminPasscodeModal
-            isOpen={isPasscodeModalOpen}
-            onClose={() => setIsPasscodeModalOpen(false)}
-            onSuccess={() => {
-              setIsAdmin(true);
-              setIsPasscodeModalOpen(false);
-            }}
-            title="Cover Letter Admin Verification"
-            description="Enter your Admin Security Passcode to generate and download customized Cover Letters."
-          />
-        )}
-      </>
+      <AdminPasscodeModal
+        isOpen={true}
+        onClose={onClose}
+        onSuccess={() => {
+          setIsLocked(false);
+          setIsPasscodeModalOpen(false);
+        }}
+        title="System Lock — Cover Letter Studio"
+        description="কভার লেটার জেনারেটর আনলক করতে আপনার অ্যাডমিন পাসকোড দিন।"
+      />
     );
   }
 

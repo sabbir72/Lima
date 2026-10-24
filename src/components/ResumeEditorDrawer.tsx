@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { ResumeData } from '../types/resume';
 import { initialResumeData } from '../data/resumeData';
-import { X, RotateCcw, Plus, Trash2, Check, Sparkles } from 'lucide-react';
+import { X, RotateCcw, Plus, Trash2, Check } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import ImageUploadInput from './ImageUploadInput';
 
 interface ResumeEditorDrawerProps {
   data: ResumeData;
@@ -67,11 +68,9 @@ export const ResumeEditorDrawer: React.FC<ResumeEditorDrawerProps> = ({
   };
 
   const handleReset = () => {
-    if (window.confirm('Reset all details back to Tansom Akther Lima default template?')) {
-      const reset = JSON.parse(JSON.stringify(initialResumeData));
-      setFormData(reset);
-      onChange(reset);
-    }
+    const reset = JSON.parse(JSON.stringify(initialResumeData));
+    setFormData(reset);
+    onChange(reset);
   };
 
   // Educational summary presets
@@ -116,6 +115,12 @@ export const ResumeEditorDrawer: React.FC<ResumeEditorDrawerProps> = ({
             <h3 className="font-semibold text-white text-sm border-b border-slate-800 pb-1">
               Personal Information
             </h3>
+            <ImageUploadInput
+              label="Profile Photo"
+              variant="avatar"
+              value={formData.personal.avatarUrl || '/images/lima.jpeg'}
+              onChange={(val) => handlePersonalChange('avatarUrl', val)}
+            />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-slate-400 font-medium">Full Name</label>

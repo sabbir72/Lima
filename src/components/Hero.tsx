@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
-import { Mail, Phone, MapPin, ArrowRight, Check, Copy, Code, BookOpen } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Mail, Phone, MapPin, ArrowRight, Check, Copy, Code, BookOpen, Camera, Loader2 } from 'lucide-react';
 import { PERSONAL_INFO } from '../data';
 import { navigateTo } from '../utils/router';
-import { getStoredProfile, PORTFOLIO_UPDATED_EVENT } from '../utils/portfolioStore';
+import { getStoredProfile, updateStoredProfile, PORTFOLIO_UPDATED_EVENT } from '../utils/portfolioStore';
+import { isAdminAuthenticated } from '../utils/adminAuth';
+import { processUploadedImage } from '../utils/imageUpload';
 
 const FALLBACK_AVATAR = '/images/lima.jpeg';
 
@@ -13,15 +15,47 @@ interface HeroProps {
 
 export default function Hero({ onOpenResumeBuilder, onOpenCoverLetter }: HeroProps) {
   const [profile, setProfile] = useState(() => getStoredProfile());
+  const [isAdmin, setIsAdmin] = useState(() => isAdminAuthenticated());
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [copiedEmail, setCopiedEmail] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handleUpdate = () => {
       setProfile(getStoredProfile());
     };
+    const handleAuth = () => {
+      setIsAdmin(isAdminAuthenticated());
+    };
     window.addEventListener(PORTFOLIO_UPDATED_EVENT, handleUpdate);
-    return () => window.removeEventListener(PORTFOLIO_UPDATED_EVENT, handleUpdate);
+    window.addEventListener('admin_auth_changed', handleAuth);
+    return () => {
+      window.removeEventListener(PORTFOLIO_UPDATED_EVENT, handleUpdate);
+      window.removeEventListener('admin_auth_changed', handleAuth);
+    };
   }, []);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingAvatar(true);
+    try {
+      const dataUrl = await processUploadedImage(file, {
+        maxWidth: 640,
+        maxHeight: 640,
+        quality: 0.86,
+      });
+      updateStoredProfile({ avatar: dataUrl });
+      setProfile(getStoredProfile());
+    } catch (err) {
+      console.error('Avatar upload failed:', err);
+    } finally {
+      setIsUploadingAvatar(false);
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleCopyEmail = () => {
     navigator.clipboard.writeText(profile.email || PERSONAL_INFO.email);
@@ -41,6 +75,15 @@ export default function Hero({ onOpenResumeBuilder, onOpenCoverLetter }: HeroPro
 
   return (
     <section id="about" className="relative min-h-screen pt-32 lg:pt-36 pb-20 flex flex-col justify-center bg-[var(--color-dark-bg,#080B11)] text-[#F3F4F6] overflow-hidden transition-colors duration-300">
+      {/* Hidden Direct Avatar File Input */}
+      <input
+        ref={avatarInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleAvatarUpload}
+        className="hidden"
+      />
+
       {/* Glow Effects */}
       <div 
         className="absolute top-1/4 right-10 w-96 h-96 rounded-full blur-[140px] pointer-events-none transition-all duration-500" 
@@ -107,6 +150,23 @@ export default function Hero({ onOpenResumeBuilder, onOpenCoverLetter }: HeroPro
                         e.currentTarget.src = FALLBACK_AVATAR;
                       }}
                     />
+
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        disabled={isUploadingAvatar}
+                        onClick={() => avatarInputRef.current?.click()}
+                        className="absolute top-2.5 right-2.5 min-h-[40px] px-3 py-1.5 rounded-full bg-black/75 hover:bg-black/90 text-white border border-white/25 text-[11px] font-mono font-bold flex items-center gap-1.5 shadow-lg backdrop-blur-md cursor-pointer z-10"
+                        title="Upload Profile Photo"
+                      >
+                        {isUploadingAvatar ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--color-accent)]" />
+                        ) : (
+                          <Camera className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                        )}
+                        <span>Upload Photo</span>
+                      </button>
+                    )}
 
                     {/* Gradient Overlay at Bottom of Image */}
                     <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[var(--color-dark-bg,#080B11)] via-[var(--color-dark-bg,#080B11)]/80 to-transparent p-2.5 flex flex-col justify-end pointer-events-none">
@@ -218,6 +278,23 @@ export default function Hero({ onOpenResumeBuilder, onOpenCoverLetter }: HeroPro
                       e.currentTarget.src = FALLBACK_AVATAR;
                     }}
                   />
+
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      disabled={isUploadingAvatar}
+                      onClick={() => avatarInputRef.current?.click()}
+                      className="absolute top-3 right-3 min-h-[42px] px-3.5 py-2 rounded-full bg-black/75 hover:bg-black/90 text-white border border-white/25 text-xs font-mono font-bold flex items-center gap-2 shadow-xl backdrop-blur-md transition-all cursor-pointer z-10"
+                      title="Upload New Profile Photo"
+                    >
+                      {isUploadingAvatar ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-[var(--color-accent)]" />
+                      ) : (
+                        <Camera className="w-4 h-4 text-[var(--color-accent)]" />
+                      )}
+                      <span>Upload Photo</span>
+                    </button>
+                  )}
 
                   {/* Gradient Overlay at Bottom of Image */}
                   <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[var(--color-dark-bg,#080B11)] via-[var(--color-dark-bg,#080B11)]/75 to-transparent p-4 flex flex-col justify-end pointer-events-none">
